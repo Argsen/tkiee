@@ -1,0 +1,9 @@
+<script type="text/javascript" src="/js/jquery-1.10.2.js"></script>
+
+<script>
+    $(document).ready( function() {
+        console.log(window.opener);
+		window.opener.evernoteCallback();
+        window.close();
+    });
+</script>

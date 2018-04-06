@@ -1,0 +1,8 @@
+.tagCloud { 
+  width:auto; height:auto; background-color:#b0c4de; text-align:center; padding:auto;
+  overflow:auto; font-size:100%; font-family:arial;display: block;
+}
+.tagList { margin:0; padding:0; display: block;}
+.tagList li {
+  list-style-type:none; float:left; margin:5px; height:auto;
+}

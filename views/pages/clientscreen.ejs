@@ -1,0 +1,360 @@
+<script type="text/javascript" src="/js/jquery-2.1.1.js"></script>
+<script type="text/javascript" src="/js/jquery-ui-1.11.2.js"></script>
+<script type="text/javascript" src="/js/jssor.core.js"></script>
+<script type="text/javascript" src="/js/jssor.utils.js"></script>
+<script type="text/javascript" src="/js/jssor.slider.js"></script>
+<script type="text/javascript" src="/js/qrcode.js"></script>
+<script type="text/javascript" src="/js/jquery.dialogextend.js"></script>
+<script type="text/javascript" src="/js/remoting.js"></script>
+<script type="text/javascript" src="/js/sketch.js"></script>
+<script type="text/javascript" src="/js/d3.js"></script>
+<script type="text/javascript" src="/js/d3.layout.cloud.js"></script>
+<script type="text/javascript" src="/js/d3.wordCloudTkiee.js"></script>
+<script type="text/javascript" src="/js/FileSaver.js"></script>
+<link rel="stylesheet" type="text/css" href="/styles/jquery-ui-1.11.2.css">
+<link rel="stylesheet" type="text/css" href="/styles/commonSettings.css">
+<link rel="stylesheet" type="text/css" href="/styles/tagTranslate.css">
+ 
+
+<style type="text/css">
+
+</style>
+
+
+<div class = "main">
+
+    <div class="ui-widget-header ui-corner-all" id="controlBar">
+        <button id="showHideControlItem"></button>
+        <button id="controlItemScrollLeft" style="display: none;"></button>
+        <div></div>
+        <button id="controlItemScrollRight" style="display: none;"></button>
+        <button id="showHideInteractivityItem"></button>
+    </div>
+    
+    <div style="position: relative;">
+        <div id="follower" style="left: 405px; top: 300px;display:none; position: absolute;"></div>
+        <div class='demo' id='colors_demo' style="display:none;">
+            <div class='tools'>
+                <a href='#colors_sketch' data-download='png' style='float: right;' id="canvasDownload">Save</a>
+                <a href='#colors_sketch' data-clear='true' style='float: right; position:relative;margin-right:10px;'>Clear</a>
+            </div>
+            <canvas id="colors_sketch"></canvas>
+            <canvas id="colors_sketch2" style="display:none"></canvas> 
+        </div>
+        <div id = "slider1_container" style = "position: relative; text-align: center;
+                top: 0px; margin-left: auto; margin-right: auto; width: 1500px; height: 1125px;">
+            <!-- Loading Screen -->
+            <div u="loading" style="position: absolute; top: 0px; left: 0px;">
+                <div style="filter: alpha(opacity=70); opacity:0.7; position: absolute; display: block;
+                        background-color: #000000; top: 0px; left: 0px;width: 100%;height:100%;">
+                </div>
+                <div style="position: absolute; display: block; background: url(/js/img/loading.gif) no-repeat center center;
+                        top: 0px; left: 0px;width: 100%;height:100%;">
+                </div>
+            </div>
+
+            <!-- Slides Container -->
+            <div u="slides" class="slides" style="cursor: move; position: absolute; text-align:center; left: 0px; top: 0px; width: 1500px; height: 1125px;
+                    overflow: hidden;">
+                <% 	for (var i = 0; i < req.session.sSlidesInfo.pages ; i ++) { %>
+                <div class="slideImgArea"><img class="slideImg" u="image" src2="http://<%= req.session.sSlidesInfo.files[i] %>" border="0" style="top: 0px; left: 0px; -webkit-transform: perspective(2000px); position: absolute;" /></div>
+                <%	}%>
+            </div>
+            
+            <!-- Arrow Navigator Skin Begin -->
+            <style>
+                /* jssor slider arrow navigator skin 05 css */
+                /*
+                .jssora05l              (normal)
+                .jssora05r              (normal)
+                .jssora05l:hover        (normal mouseover)
+                .jssora05r:hover        (normal mouseover)
+                .jssora05ldn            (mousedown)
+                .jssora05rdn            (mousedown)
+                */
+                .jssora05l, .jssora05r, .jssora05ldn, .jssora05rdn
+                {
+                    position: absolute;
+                    cursor: pointer;
+                    display: block;
+                    background: url(/js/img/a11.png) no-repeat;
+                    overflow:hidden;
+                }
+                .jssora05l { background-position: -10px -40px; }
+                .jssora05r { background-position: -70px -40px; }
+                .jssora05l:hover { background-position: -130px -40px; }
+                .jssora05r:hover { background-position: -190px -40px; }
+                .jssora05ldn { background-position: -250px -40px; }
+                .jssora05rdn { background-position: -310px -40px; }
+            </style>
+            <!-- Arrow Left -->
+            <span u="arrowleft" class="jssora05l" style="width: 40px; height: 40px; top: 123px; left: 8px;">
+            </span>
+            <!-- Arrow Right -->
+            <span u="arrowright" class="jssora05r" style="width: 40px; height: 40px; top: 123px; right: 8px">
+            </span>
+            <!-- Arrow Navigator Skin End -->                 
+
+            <!-- Bullet Navigator Skin Begin -->
+            <style>
+                /* jssor slider bullet navigator skin 03 css */
+                /*
+                .jssorb03 div           (normal)
+                .jssorb03 div:hover     (normal mouseover)
+                .jssorb03 .av           (active)
+                .jssorb03 .av:hover     (active mouseover)
+                .jssorb03 .dn           (mousedown)
+                */
+                .jssorb03 div, .jssorb03 div:hover, .jssorb03 .av
+                {
+                    background: url(/js/img/b03.png) no-repeat;
+                    overflow:hidden;
+                    cursor: pointer;
+                }
+                .jssorb03 div { background-position: -5px -4px; }
+                .jssorb03 div:hover, .jssorb03 .av:hover { background-position: -35px -4px; }
+                .jssorb03 .av { background-position: -65px -4px; }
+                .jssorb03 .dn, .jssorb03 .dn:hover { background-position: -95px -4px; }
+            </style>
+            
+            <!-- bullet navigator container -->
+            <div u="navigator" class="jssorb03" style="position: absolute; bottom: 4px; left: 6px;">
+                <!-- bullet navigator item prototype -->
+                <div u="prototype" style="position: absolute; width: 21px; height: 21px;
+                        text-align:center; line-height:21px; color:white; font-size:12px;"><NumberTemplate></NumberTemplate></div>
+            </div>     
+        </div> 
+    </div>
+
+    <div id="controlArea">
+        <div class="ui-widget-header ui-corner-all" id="interactivityBar">
+
+        </div>
+        
+        <div id="qrcodeArea" style="display: none; position: absolute; top: 25px; left: 0px; width: 350px; height: 350px;"></div>
+        <object  style="position: absolute; top: -300px; left: 0px;" classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000"
+                width="214"
+                height="137"
+                id="recorderObject"
+                align="middle">
+            <param name="movie" value="swf/wavpack_encoder.swf"/>
+            <param name="allowScriptAccess" value="always" />
+            <param name="wmmode" value="opaque" />
+            <param name="quality" value="high" />
+            <param name="scale" value="noscale" />
+            <param name="salign" value="lt" />
+            <param name="menu" value="false" />
+            <param name="bgcolor" value="#ffffff"/>
+            <embed src="swf/wavpack_encoder.swf"
+                   bgcolor="#ffffff"
+                   width="214"
+                   height="137"
+                   name="recorderObject"
+                   wmmode="opaque"
+                   quality="high"
+                   align="middle"
+                   menu="false"
+                   allowScriptAccess="always"
+                   type="application/x-shockwave-flash"
+                   pluginspage="http://get.adobe.com/flashplayer/"
+            />
+        </object>
+    </div>
+</div>
+
+<div id="dialog-filelist" title="File List">
+    <div id="multiplefiles"></div>
+    <div id="resourceUrls" style="margin-top: 20px;"></div>
+</div>
+
+<div id="dialog-form" title="Popup Window">
+	<button id="dialog-formfsi"></button>
+	<button id="dialog-formfsd"></button>
+	<div id="dialog-form1" style="font-size:200%;line-height:100%">
+	</div>
+</div>
+
+<div id="dialog-alert" title = "Alert">
+	<div id="alerts">
+	
+	</div>
+</div>
+
+<div id="dialog-grouppower" title="Group Power">
+	<div class="ui-widget-content">
+		<div style="height:100%;position:absolute;top:0;width:79%;">
+			<div id="chatContent" class="ui-widget-content" style="overflow:auto;height:80%;">
+				
+			</div>
+			<div class="ui-widget-content" style="height:20%;">
+				<textarea id="chatTextarea" class="ui-corner-all ui-widget-content" style="font-family:Sans-serif; font-size:1.2em;"></textarea>
+				<button id="chatTextEnter" style="position:relative;">Enter</button>
+			</div>
+		</div>
+		<div style="height:100%;position:absolute;top:0;width:19%;left:80%;">
+			<div id="chatKeyWordArea" class="ui-widget-content" style="height:100%;">
+				
+			</div>			
+		</div>
+	</div>
+</div>
+
+<div id="dialog-exportEverNote" title="Export to EverNote">
+	<div class="ui-widget-content">
+		<label>Enter note title</label>
+		<input id="noteTitle"></input>
+		<select id="everNoteSelect">
+			
+		</select>
+	</div>
+</div>
+
+<div class="ui-widget" id="connectionAlert" style="position: absolute; right: 10px; bottom: 10px; zIndex: 9999; width: 300px; display: none;">
+	<div class="ui-state-error ui-corner-all" style="padding: 0 .7em;">
+		<p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span>
+		<strong>Alert:</strong> Connection to server failure. Reconnecting...</p>
+	</div>
+</div>
+
+
+<script>
+    $.ajaxSetup({
+        cache: false
+    });
+    
+    //-------------------------------------------
+    // Get Default Info below
+    //-------------------------------------------      
+    
+    var pageData = {
+        "session": {
+            "totalPage": '<%= req.session.sSlidesInfo.pages %>' == 'undefined' ? '0' : '<%= req.session.sSlidesInfo.pages %>',
+            "sessionId": '<%= req.session.sSessionId %>' == 'undefined' ? '0' : '<%= req.session.sSessionId %>',
+            "sessionName": '<%= req.session.sSessionName %>' == 'undefined' ? '0' : '<%= req.session.sSessionName %>',
+            "sessionKey": '<%= req.session.sKeyPhase %>' == 'undefined' ? '0' : '<%= req.session.sKeyPhase %>',
+            "role": '<%= req.session.sRole %>' == 'undefined' ? '0' : '<%= req.session.sRole %>',
+            "userId": '<%= req.session.sUserId %>' == 'undefined' ? '0' : '<%= req.session.sUserId %>',
+            "currentPage": 1,
+            "currentFileName": "",
+            "currentFileId": 0,
+            "currentFilePage": 1,
+            "currentParticipant": 0,
+            "maxParticipant": 0
+        },
+        "page": {
+            "id": [],
+            "image": []
+        },
+        "user": {
+            "id": '<%= req.session.sUserId %>' == 'undefined' ? '0' : '<%= req.session.sUserId %>',
+            "preference": {}
+        },
+        "quiz": ""
+    };
+
+    <% for (var i=0; i < req.session.sSlidesInfo.pages; i++) { %>
+        pageData.page.image[<%= i %>]="http://<%= req.session.sSlidesInfo.files[i] %>";
+    <%	} %>
+    
+    <% 	for (var i = 0; i < req.session.sSlidesInfo.pages ; i ++) { %>
+        pageData.page.id.push("<%= req.session.sSlidesInfo.pngId[i] %>")
+    <% } %>
+
+    pageData.user.preference.control = [
+        {name: "BacktoLogin", text: "Home", icon: "ui-icon-home"},
+        {name: "SwitchtoMobile", text: "Mobile", icon: "ui-icon-bookmark"},
+    //    {name: "Duplicate", text: "Mirror", icon: "ui-icon-newwin"},
+        {name: "Streaming", text: "Streaming", icon: "ui-icon-bullet"},
+        {name: "FileList", text: "Files", icon: "ui-icon-folder-open"}        
+    //    {name: "Annotation", text: "Annotation", icon: "ui-icon-pencil"}
+    //    {name: "openScanner", text: "Scanner", icon: "ui-icon-print"}
+    ];    
+    pageData.user.preference.interactivity = [
+        {name: "Feedback", text: "Feedback", icon: "/styles/icons/feedback.png"},
+        {name: "Question", text: "Question", icon: "/styles/icons/question.png"},
+        {name: "Quiz", text: "Quiz", icon: "/styles/icons/quiz.png"},
+        {name: "Evaluation", text: "Evaluation", icon: "/styles/icons/evaluation.png"},
+        {name: "GroupPower", text: "GroupPower", icon: "/styles/icons/grouppower.png"},
+        {name: "SlideTag", text: "SlideTag", icon: "/styles/icons/slidetag.png"},
+        {name: "Reference", text: "Reference", icon: "/styles/icons/reference.png"},
+        {name: "Note", text: "Note", icon: "/styles/icons/note.png"}       
+    ];
+    
+    $.ajax({
+		type: "GET",
+		url: "quiz/list",
+		dataType: "json",
+		cache: false,
+		data: {"sessionId": pageData.session.sessionId},
+		success: function(response) {
+            pageData.quiz = response;
+            console.log(pageData);
+            scripts.fetch();
+        }
+    });
+  
+
+    //-------------------------------------------
+    // Load .js below
+    //-------------------------------------------
+    
+    function getScripts( scripts, onScript, onComplete ) {
+        this.async = true;
+        this.cache = false;
+        this.data = null;
+        this.complete = function () { $.scriptHandler.loaded(); };
+        this.scripts = scripts;
+        this.onScript = onScript;
+        this.onComplete = onComplete;
+        this.total = scripts.length;
+        this.progress = 0;
+    };
+
+    getScripts.prototype.fetch = function() {
+        $.scriptHandler = this;
+        var src = this.scripts[ this.progress ];
+        console.log('%cFetching %s','color:#ffbc2e;', src);
+
+        $.ajax({
+            crossDomain:true,
+            async:this.async,
+            cache:this.cache,
+            type:'GET',
+            url: src,
+            data:this.data,
+            statusCode: {
+                200: this.complete
+            },
+            dataType:'script'
+        });
+    };
+
+    getScripts.prototype.loaded = function () {
+        this.progress++;
+        if( this.progress >= this.total ) {
+            if(this.onComplete) this.onComplete();
+        } else {
+            this.fetch();
+        };
+        if(this.onScript) this.onScript();
+    };
+    
+    var scripts = new getScripts(
+        ["/js/UI.js", "/js/desktopCommonSettings.js", "/js/clientScreenSettings.js"],
+        function() {
+            /* Optional - Executed each time a script has loaded (Use for Progress updates?) */
+        },
+        function () {
+            /* Optional - Executed when the entire list of scripts has been loaded */
+        }
+    );
+    
+
+    //-------------------------------------------
+    // Page Settings below
+    //-------------------------------------------     
+ 
+    $(document).ready(function () {    
+
+    });
+</script>

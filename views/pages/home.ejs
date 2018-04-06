@@ -1,0 +1,494 @@
+<link rel="stylesheet" type="text/css" href="/styles/bootstrap.css">
+<script type="text/javascript" src="/js/jquery-2.1.1.js"></script>
+<script type="text/javascript" src="/js/bootstrap.js"></script>
+
+
+<style>
+    body {
+      padding-top: 50px;
+    }
+    .pages {
+      padding: 40px 15px;
+    }
+    .pages li{
+      text-align: left;
+      font-size: 120%;
+    }    
+</style>
+
+
+<body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                </button>
+                <a href="http://public.tkiee.com"><img style="height: 50px" src="/styles/images/logo.png" alt="TKIEE" /></a>
+            </div>
+            <div id="navbar" class="collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                <li><a href="#about" id="nav-about">About</a></li>
+                <li><a href="#benefit" id="nav-benefit">How Do I Benefit</a></li>
+                <li><a href="#contact" id="nav-contact">Contact Us</a></li>
+                <li><a href="#login" id="nav-login">Login</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="pages" id="front" style="height: 500px; background-image: url(/styles/images/page-bg.jpg); background-size:100%;">
+
+        </div>
+
+        <div class="pages" id="about" style="display: none;">
+            <h2>Tkiee: </h2>
+            <p class="lead">Tkiee is a Web-based learning system that provides seamless interactivity between the learner and teacher in a face-to-face, online and blended modalities.  It provides powerful capability for interaction between the learner and the teaching guide using smart devices for learning any place anytime with any device.</p>
+            <h2>Benefits of Tkiee: </h2>
+            <p class="lead">Tkiee enables an enhanced learning experience both in face to face presentations and workshops as well as in online learning settings. It achieves this through greater interactivity and engagement of students with the presenter and learning material.</p>         
+            <h2>Tkiee offers the following benefits: </h2>
+            <ul>
+                <li>Student Interactivity during presentations, workshops and tutorials;</li>
+                <li>Note taking and sharing;</li>
+                <li>Tagging of presentation content for additional support/explanation;</li>
+                <li>Language translation of content;</li>
+                <li>Reference to dictionaries and other resources;</li>
+                <li>Presentation Broadcasting;</li>
+                <li>Efficient Presentation Recording;</li>
+                <li>Powerful Analytics to identify learner difficulties and provide additional support as well as feedback for the enhancement of future presentations</li>
+                <li>In-class or asynchronous groupwork; and</li>
+                <li>Swot vac package for efficient revision of material.</li>
+            </ul>
+        </div>
+
+        <div class="pages" id="benefit" style="display: none;">
+            <h2>How Do I benefit?</h2>
+            <p class="lead">Tkiee offers a number of ways that you may benefit.</a>
+            <p class="lead">As a presentation participant you can interact with your presenter during the presentation using your smart phone, tablet or laptop by posting questions and comments as well as indicating whether the speed and understandability of the material is up to your expectations.</a>
+            <p class="lead">For each presentation slide you are able to access the meaning of the terms presented or even have them automatically translated in a number of other langages.</a>
+            <p class="lead">Tkiee allows you to take notes on the individual slides, to listen to a broadcasting of the presentation in real time or even listen to the recording slide by slide if you are unable to attend the presentation.  It offers many more benefits….[<span><a href="#">Read More</a></span>]</a>
+            <p class="lead">As a presenter you can upload your presentation on the Web and make it available to the participants at any time that you feel appropriate including before the actual presentation.  For example if you are using a ‘Flipped Lecture’ teaching mode, you can upload your slides before the tutorial/workshop as well as questions or tasks for the participants. They are then able to ‘tag’ the slides which they wish to discuss and get further explanation as well as submit the responses to the questions and tasks.</a>
+            <p class="lead">Presenters as well as administrators can also receive a large amount of data from the participant responses  which can allow them to provide personalised learning….[<span><a href="#">Read More</a></span>]</a>
+        </div>
+
+        <div class="pages" id="contact" style="display: none;">
+            <label style="font-size:130%;font-style:italic;color:#000099;margin-top:30px;margin-bottom:10px;">We are delighted that you wish to contact us; Please complete as much of the form below as you wish; but please ensure that you have a valid email address so that we can respond to your request.</label>
+            <form onSubmit="return false;">
+                <div class="form-group">
+                    <label for="contactUsName">Your Name:</label>
+                    <input type="text" id="contactUsName" value="" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label for="contactUsEmail">Your Email Address*:</label>
+                    <input type="text" id="contactUsEmail" value="" class="form-control" />
+                </div>
+                <label for="contactUsDetail">Message: </label>
+                <textarea type="textarea" style="resize: none;" id="contactUsDetail" value="" class="form-control" /></textarea>			
+            </form>
+            <button class="btn btn-default" type="submit" id="contactUsConfirm" style="margin-top: 10px;">Confirm</button>
+            <button class="btn btn-default" type="submit" id="contactUsCancel" style="margin-top: 10px;">Cancel</button>          
+        </div>
+
+        <div class="pages" id="login" style="display: none;">
+            <h1>Welcome</h1>
+            <div id="welcome">
+                <form class="userLoginForm" onSubmit="return false;" style="text-align:left;">
+                    <div class="form-group">
+                        <label for="userEmail" id="userEmailL" style="left:0px;">Please login with your email:</label>
+                        <input type="email" name="userEmail" id="userEmail" value="" class="form-control"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="userPassword" id="userPasswordL"  style="left:0px;">Password:</label>
+                        <input type="password" name="userPassword" id="userPassword" value="" class="form-control"/>
+                    </div>
+                </form>
+                <button class="btn btn-default userLogin" type="submit" id="userLogin">User Login</button>
+                <button class="btn btn-default" type="submit" id="createUser" data-toggle="modal" data-target="#myModal">Create New User</button>                   
+                <label href="#" id="passwordRecovery" style="font-style:italic;color:#000099;display:block;margin-top:10px;">Forget Your Password?</label>
+            </div>
+
+            <div id="welcome1" style="display:none;">
+                <p id="userName" style="font-size:200%;"><font color=#004080></font></p>
+                <button class="btn btn-default" type="submit" id="userEnter">Enter</button>
+                <button class="btn btn-default" type="submit" id="userLogOut">Log Out</button>                 
+            </div>
+
+            <div>
+                <button class="btn btn-default" type="submit" id="presenterB" style="margin-top: 10px;">Guest Presenter</button>
+                <button class="btn btn-default" type="submit" id="participantB" style="margin-top: 10px;">Guest Participant</button>                    
+            </div>
+        </div>      
+    </div>
+    
+    <div class="modal fade" id="dialog-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Create new user</h4>
+                </div>
+                <div class="modal-body">
+                    <p class="validateTips">All form fields are required.</p>
+                    <form onSubmit="return false;">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="text" name="email" id="email" value="" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" name="password" id="password" value="" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmpassword">Confirm Password</label>
+                            <input type="password" name="password" id="confirmpassword" value="" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label for="firstName">First Name</label>
+                            <input type="text" name="firstName" id="firstName" value="" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name</label>
+                            <input type="text" name="lastName" id="lastName" value="" class="form-control" />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="createNewUser">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>  
+    
+    <div class="modal fade" id="dialog-test">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Trial Password Required</h4>
+                </div>
+                <div class="modal-body">
+                    <p class="validateTips">All form fields are required.</p>
+                    <form onSubmit="return false;">
+                        <div class="form-group">
+                            <label for="testPassword">Enter Trial Password: </label>
+                            <input type="password" id="testPassword"  class="form-control"/>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="trialNumberSubmit">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>      
+    
+    <div class="modal fade" id="dialog-password">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Retrieve Password</h4>
+                </div>
+                <div class="modal-body" id="passwordRetrieveArea">
+                    <form onSubmit="return false;">
+                        <div class="form-group">
+                            <label for="passwordRecoveryEmail">Enter Your Account (Email):</label>
+                            <input type="text" id="passwordRecoveryEmail"  class="form-control"/>	                            
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="retrievePasswordSubmit">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>       
+
+    <div class="alert alert-danger" role="alert" id="connectionAlert" style="position: absolute; right: 10px; bottom: 10px; width: 300px; display: none;">
+        <strong>Warning!</strong> Connection to server failure. Reconnecting...
+    </div>    
+</body>
+
+
+<script>
+    $(document).ready(function () {
+        var email = $( "#email" ),
+            password = $( "#password" ),
+            firstName = $("#firstName"),
+            lastName = $("#lastName"),
+            userEmail = '',
+            userId = '<%= req.session ? req.session.sUserId : 0 %>' == 'undefined' ? '0' : '<%= req.session ? req.session.sUserId : 0 %>',
+            userPassword,
+            keyPhase,
+            hostPassword,
+            allFields = $( [] ).add( email ).add( password ),
+            tips = $( ".validateTips" ),
+            trialNumber;
+            
+		//-------------------------------------------
+		// Login settings below
+		//-------------------------------------------	    
+        
+        if (userId == '0') {
+        
+        } else {
+            $.ajax({
+                type: "GET",
+                url: "User/find",
+                dataType: "json",
+                cache: false,
+                data: {"id": userId},
+                success: function(response) {
+                    userEmail = response.email;
+                    if (response.id) {
+                        $("#welcome").hide();
+                        $("#welcome1").show();
+                        $("#userName").text(response.firstName + " " + response.lastName);
+                    } else {
+                        
+                    }
+                }
+            });
+        }
+        
+        $("#presenterB").button().click(function(){
+            window.location.href = "login?tag=presenter";
+        });
+
+        $("#participantB").button().click(function(){
+            window.location.href = "login?tag=participant";
+        });  
+
+        $("#userLogin").click(function(){
+            $.ajax({
+                type: "POST",
+                url: "User/login",
+                dataType: "json",
+                cache: false,
+                data: {"email": $("#userEmail").val(), "password": $("#userPassword").val()},
+                success: function(response) {
+                    console.log(response);
+                    //var res = JSON.parse(response);
+                    if (response.error) {
+                        alert('Wrong Email or Password');
+                    } else {					
+                        window.location.href='login';
+                    }
+                }
+            })
+        });      
+                
+        $("#userEnter").click(function(){
+            window.location.href='login';
+        });
+                
+        $("#userLogOut").click(function () {
+            if (confirm("Log Out?")) {
+                var x = $('<form></form>');
+                x.attr('action', '/User/logouthome');
+                x.attr('method', 'POST');
+                x.appendTo('body');
+                x.submit();				
+            }
+        });       
+
+        $("#createUser").click(function () {                    
+            if (trialNumber == "0808") {
+                $("#dialog-form").modal('show');
+            } else {
+                $("#dialog-test").modal('show');
+            }	
+        });  
+
+        $("#trialNumberSubmit").click(function () {
+            if ($("#testPassword").val() == '0808') {
+                $("#dialog-test").modal("toggle");
+                $("#testPassword").empty();
+                trialNumber = "0808";
+                $("#dialog-form").modal("show");
+            } else {
+                alert("Wrong Trial Password!");
+            }
+        });
+        
+        $("#createNewUser").click(function () {
+            var bValid = true;
+            allFields.removeClass( "ui-state-error" );
+            bValid = bValid && checkLength(email, "email", 6, 80);
+            bValid = bValid && checkLength(password, "password", 5, 16);
+            bValid = bValid && checkRegexp( email, /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i, "eg. ui@jquery.com" );
+            bValid = bValid && checkRegexp( password, /^([0-9a-zA-Z])+$/, "Password field only allow : a-z 0-9" );
+            bValid = bValid && checkLength(firstName, "First Name", 1, 20);
+            if ($("#confirmpassword").val() != $("#password").val()) {
+                alert("Password not match!");
+            } else {
+                if (bValid) {
+                    $.ajax({
+                        type: "POST",
+                        url: "user/new",
+                        dataType: "json",
+                        cache: false,
+                        data: {"email": email.val(), "password": password.val(), "firstName": firstName.val(), "lastName": lastName.val() },
+                        success: function(response) {
+                            if (response.error) {
+                                alert(response.error);
+                            } else {
+                                $("#dialog-form").modal("toggle");
+                                alert("New User Created!");
+                                $.ajax({
+                                    type: "POST",
+                                    url: "User/login",
+                                    dataType: "json",
+                                    cache: false,
+                                    data: {"email": email.val(), "password": password.val()},
+                                    success: function(response) {
+                                        console.log(response);
+                                        //var res = JSON.parse(response);
+                                        window.location.href='login';
+                                    }
+                                });										
+                            }
+                        }
+                    });					
+                }
+            }
+        });
+                
+        function checkLength( o, n, min, max ) {
+            if ( o.val().length > max || o.val().length < min ) {
+                o.addClass( "ui-state-error" );
+                updateTips( "Length of " + n + " must be between " +
+                        min + " and " + max + "." );
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        function checkRegexp( o, regexp, n ) {
+            if ( !( regexp.test( o.val() ) ) ) {
+                o.addClass( "ui-state-error" );
+                updateTips( n );
+                return false;
+            } else {
+                return true;
+            }
+        }	  
+
+        $("#passwordRecovery").click(function(){
+            $("#dialog-password").modal('show');
+        });	        
+        
+        $("#retrievePasswordSubmit").click(function () {
+            $("#passwordRetrieveArea").append("<p id=\"dialogPasswordP\">Email Password</p>");
+            $("#passwordRetrieveArea").append("<img id=\"dialogPasswordImg\" src=\"/styles/images/uploadfile loading.gif\"></img>");
+            $.ajax({
+                type: "POST",
+                url: "mail/getpassword",
+                dataType: "json",
+                cache: false,
+                data: {"email": $("#passwordRecoveryEmail").val()},
+                success: function(response) {
+                    if(response.error) {
+                        console.log(response.error);
+                    } else {
+                        $("#passwordRetrieveArea").append("<label style=\"color:#000099;\">Password has been sent to your email. Please check.</label>");
+                        $("#dialogPasswordP").remove();
+                        $("#dialogPasswordImg").remove();
+                    }
+                }
+            });
+        });        
+    
+		//-------------------------------------------
+		// Contact Us settings below
+		//-------------------------------------------	
+
+		$("#contactUsConfirm")
+				.button()
+				.click(function() {
+					if ($("#contactUsEmail").val()=="") {
+						alert("Please Enter Email Address.");
+					} else {
+						$("#contactUsConfirm").button('option', 'label', 'Sending Query');
+						$("#contactUsConfirm").append("<img style=\"display: inline;\" src=\"/styles/images/uploadfile loading.gif\"></img>");
+						$("#contactUsConfirm").button("disable");
+						$.ajax({
+							type: "POST",
+							url: "Mail/feedback",
+							dataType: "json",
+							cache: false,
+							data: {"name": $("#contactUsName").val(), "email": $("#contactUsEmail").val(), "detail": $("#contactUsDetail").val()},
+							success: function(response) {
+								alert("Your query has been sent. We will endevour to contact you as soon as possible!");
+								$("#contactUsConfirm").button('option', 'label', 'Confirm');
+								$("#contactUsConfirm img").remove();
+                                $("#contactUsName").val('');
+                                $("#contactUsEmail").val('');
+                                $("#contactUsDetail").val('');						
+							}
+						});
+					}
+				});
+
+		$("#contactUsCancel")
+				.button()
+				.click(function() {
+					$("#contactUsName").val('');
+					$("#contactUsEmail").val('');
+					$("#contactUsDetail").val('');
+				});
+                
+		//-------------------------------------------
+		// General settings below
+		//-------------------------------------------	                
+ 
+        $("#nav-about").click(function () {
+            $(".pages").hide();
+            $("#about").show();
+        });
+        
+        $("#nav-benefit").click(function () {
+            $(".pages").hide();
+            $("#benefit").show();
+        });
+
+        $("#nav-contact").click(function () {
+            $(".pages").hide();
+            $("#contact").show();
+        });
+
+        $("#nav-login").click(function () {
+            $(".pages").hide();
+            $("#login").show();
+        });        
+        
+        $("#aaaa").click(function () {
+            $("#myModal").show();
+        });
+        
+        $("#navbar li a").click(function(event) {
+            // check if window is small enough so dropdown is created
+            $("#navbar").removeClass("in").addClass("collapse");
+        });        
+        
+        socket.on('connect', function () { 
+            if ($("#connectionAlert").is(':Visible')){
+                $("#connectionAlert").hide();
+            } else {
+            
+            }
+        });    
+        
+        socket.on('disconnect', function () { 
+            $("#connectionAlert").show();
+        });                  
+    });
+</script>

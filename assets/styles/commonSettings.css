@@ -1,0 +1,83 @@
+body {
+    height: 100%;
+    margin: 0;
+    font-size: 62.5%;
+    font-family: "Verdana", "Arial", "sans-serif";
+    overflow: hidden;
+}
+.main {
+    min-height: 100%;
+}
+li { margin-left: 2px; }
+label, input { display:block; }
+textarea { padding: 0; }
+input.text { margin-bottom:12px; width:95%; padding: .4em; }
+fieldset { padding:0; border:0; margin-top:25px; }
+.validateTips { border: 1px solid transparent; padding: 0.3em; }
+    
+#controlBar {
+    height: 25px;
+    width: 100%;
+    left: 0px;
+    top: 0px;
+    border: 0.1px;
+    padding: 0.1px;
+    overflow: hidden; 
+}
+#controlBar div { position: absolute; top: 0px; left: 56px; float: left; overflow: hidden; width: 10000px; height: 23px; }
+.controlItem { display: none; top: 0px; position: relative; }
+.controlBarLabel {font-size: 150%; display: inline; position: relative; margin: 4px 10px 3px 10px; }
+
+#interactivityBar { overflow: hidden; width: 60px; height: auto; float:left; position: absolute; top: 25px; right: 0px; border: 0px; background: #cccccc}
+.interactivityItem { display: none; width: 60px; height: 60px; float: left; margin-top: 1px; margin-bottom: 1px; text-align: center; }
+.interactivityItemIcon { margin-top: 10px; margin-bottom: 4px; }
+.interactivityArea { display: none; float:left; position: absolute; width: 500px; font-size: 100%; overflow: auto; }
+#interactivityAreaQuiz { width: 500px; overflow: hidden; }
+#Quiz { padding: 0; overflow: auto; }
+#interactivityAreaEvaluation{ width: 500px; overflow: hidden; }
+#Evaluation { padding: 0; overflow: auto; }
+.interactivityNotification { display: none; position: absolute;
+background:             radial-gradient( 5px -9px, circle, white 8%, red 26px );
+background:    -moz-radial-gradient( 5px -9px, circle, white 8%, red 26px );
+background:     -ms-radial-gradient( 5px -9px, circle, white 8%, red 26px );
+background:      -o-radial-gradient( 5px -9px, circle, white 8%, red 26px );
+background: -webkit-radial-gradient( 5px -9px, circle, white 8%, red 26px );
+background-color: red;
+border-radius: 12px; /* one half of ( (border * 2) + height + padding ) */
+color: white;
+font: bold 15px/13px Helvetica, Verdana, Tahoma;
+height: 16px; 
+padding: 4px 3px 0 3px;
+text-align: center;
+min-width: 14px;
+}
+
+#multiplefiles li{list-style-type:none;}
+#resourceUrls li{list-style-type:none;}
+
+#follower{
+  position : relative;
+  background-color : red;
+ 
+  width:10px;
+  height:10px;
+  border-radius:50px;
+}
+
+#interactivityAreaFeedback { font-size: 200%;}
+.thumbup { margin: 10px; }
+.thumbdown { display: none; margin: 10px; }
+
+#displayQuestion { height: 65%; overflow: auto; margin: 10px; }
+#submitQuestionArea { display: block; margin: 10px; height: 20%; resize: none; }
+#submitQuestion { margin-left: 10px; }
+
+#slideRatingRadio { margin: 10px; }
+#slideRatingTextarea { display: block; margin: 10px; height: 200px; width: 95%; resize: none; }
+#slideRatingTextareaButton { margin: 10px; }
+
+#noteSlideArea { display: block; margin: 10px; height: 450; width: 450px; }
+#noteTextArea { display: block; margin: 10px; height: 35%; width: 95%; resize: none; }
+#noteSubmit { display: block; margin: 10px; }
+
+.dashboardGeneral { height: 100px; width: 50px; display: inline: block;}

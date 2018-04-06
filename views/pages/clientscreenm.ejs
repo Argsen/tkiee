@@ -1,0 +1,1512 @@
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" type="text/css" href="/styles/jquery.mobile-1.4.5.css">
+<link rel="stylesheet" type="text/css" href="/styles/autodividers-linkbar.css">
+<script type="text/javascript" src="/js/jquery-2.1.1.js"></script>
+<script type="text/javascript" src="/js/jquery.mobile-1.4.5.js"></script>
+<script type="text/javascript" src="/js/jssor.core.js"></script>
+<script type="text/javascript" src="/js/jssor.utils.js"></script>
+<script type="text/javascript" src="/js/jssor.slider.js"></script>
+<script type="text/javascript" src="/js/FileSaver.js"></script>
+<script type="text/javascript" src="/js/sketch.js"></script>
+<script type="text/javascript" src="/js/ifvisible.js"></script>
+<script type="text/javascript" src="/js/jquery.jplayer.min.js"></script>
+<style>
+    .ui-body {
+        padding: 0;
+    }
+
+    .ui-collapsible-inset {
+        padding: 0;
+    }
+
+    fieldset {
+        display: inline-block;
+    }
+
+    li.ui-li-divider.ui-bar-inherit {
+        font-size: 120%;
+        font-weight: bold;
+        padding-left: 2px;
+        color: #000099;
+    }
+</style>
+<script>
+
+    var pageData = {
+        "session": {
+            "totalPage": '<%= req.session.sSlidesInfo.pages %>' == 'undefined' ? '0' : '<%= req.session.sSlidesInfo.pages %>',
+            "sessionId": '<%= req.session.sSessionId %>' == 'undefined' ? '0' : '<%= req.session.sSessionId %>',
+            "sessionName": '<%= req.session.sSessionName %>' == 'undefined' ? '0' : '<%= req.session.sSessionName %>',
+            "sessionKey": '<%= req.session.sKeyPhase %>' == 'undefined' ? '0' : '<%= req.session.sKeyPhase %>',
+            "role": '<%= req.session.sRole %>' == 'undefined' ? '0' : '<%= req.session.sRole %>',
+            "userId": '<%= req.session.sUserId %>' == 'undefined' ? '0' : '<%= req.session.sUserId %>',
+            "currentPage": 1,
+            "currentFileName": "",
+            "currentFileId": 0,
+            "currentFilePage": 1,
+            "currentParticipant": 0,
+            "maxParticipant": 0
+        },
+        "page": {
+            "id": [],
+            "image": []
+        },
+        "user": {
+            "id": '<%= req.session.sUserId %>' == 'undefined' ? '0' : '<%= req.session.sUserId %>',
+            "preference": {}
+        },
+        "quiz": ""
+    };
+
+    <% for (var i=0; i < req.session.sSlidesInfo.pages; i++) { %>
+        pageData.page.image[<%= i %>]="http://<%= req.session.sSlidesInfo.files[i] %>";
+    <%	} %>
+    
+    <% 	for (var i = 0; i < req.session.sSlidesInfo.pages ; i ++) { %>
+        pageData.page.id.push("<%= req.session.sSlidesInfo.pngId[i] %>")
+    <% } %>
+
+    $.ajax({
+		type: "GET",
+		url: "quiz/list",
+		dataType: "json",
+		cache: false,
+		data: {"sessionId": pageData.session.sessionId},
+		success: function(response) {
+            pageData.quiz = response;
+            console.log(pageData);
+            scripts.fetch();
+        }
+    });    
+
+    //-------------------------------------------
+    // Load .js below
+    //-------------------------------------------
+    
+    function getScripts( scripts, onScript, onComplete ) {
+        this.async = true;
+        this.cache = false;
+        this.data = null;
+        this.complete = function () { $.scriptHandler.loaded(); };
+        this.scripts = scripts;
+        this.onScript = onScript;
+        this.onComplete = onComplete;
+        this.total = scripts.length;
+        this.progress = 0;
+    };
+
+    getScripts.prototype.fetch = function() {
+        $.scriptHandler = this;
+        var src = this.scripts[ this.progress ];
+        console.log('%cFetching %s','color:#ffbc2e;', src);
+
+        $.ajax({
+            crossDomain:true,
+            async:this.async,
+            cache:this.cache,
+            type:'GET',
+            url: src,
+            data:this.data,
+            statusCode: {
+                200: this.complete
+            },
+            dataType:'script'
+        });
+    };
+
+    getScripts.prototype.loaded = function () {
+        this.progress++;
+        if( this.progress >= this.total ) {
+            if(this.onComplete) this.onComplete();
+        } else {
+            this.fetch();
+        };
+        if(this.onScript) this.onScript();
+    };
+    
+    var scripts = new getScripts(
+        ["/js/mobileCommonSettings.js", "/js/clientScreenmSettings.js"],
+        function() {
+            /* Optional - Executed each time a script has loaded (Use for Progress updates?) */
+        },
+        function () {
+            /* Optional - Executed when the entire list of scripts has been loaded */
+        }
+    );
+
+jQuery(document).ready(function ($) {
+    $.ajaxSetup({cache: false});
+	var sessionId = '<%= req.session.sSessionId %>';
+    var userId = '<%= req.session.sUserId %>';
+    var currentPage = 1;
+    var comments = '';
+    var fileId = '';
+    var filePage = '';
+
+	$(".slideImg").remove();
+    //-------------------------------------------
+    // Slider settings below
+    //-------------------------------------------
+
+    var options = {
+        $FillMode: 2,                                       //[Optional] The way to fill image in slide, 0 stretch, 1 contain (keep aspect ratio and put all inside slide), 2 cover (keep aspect ratio and cover whole slide), 4 actuall size, default value is 0
+        $ArrowKeyNavigation: true,   			            //[Optional] Allows keyboard (arrow key) navigation or not, default value is false
+		$LazyLoading:	 0,
+		$Loop: 0,
+		$HWA: false,
+		$AutoPlay: false,
+
+        $BulletNavigatorOptions: {                                //[Optional] Options to specify and enable navigator or not
+            $Class: $JssorBulletNavigator$,                       //[Required] Class to create navigator instance
+            $ChanceToShow: 2,                               //[Required] 0 Never, 1 Mouse Over, 2 Always
+            $Lanes: <%= Math.ceil(req.session.sSlidesInfo.files.length / 35) %>,                                     //[Optional] Specify lanes to arrange items, default value is 1
+        },
+
+        $ArrowNavigatorOptions: {                       //[Optional] Options to specify and enable arrow navigator or not
+            $Class: $JssorArrowNavigator$,              //[Requried] Class to create arrow navigator instance
+            $ChanceToShow: 2,                               //[Required] 0 Never, 1 Mouse Over, 2 Always
+        }
+    };
+
+    var jssor_slider1 = new $JssorSlider$("slider1_container", options);
+    window.jssor_slider1 = jssor_slider1;
+    var headerHeight = 0;
+    var centerWidth = jssor_slider1.$Elmt.parentNode.clientWidth;
+    var centerHeight = jssor_slider1.$Elmt.parentNode.clientHeight;
+    //responsive code begin
+    //you can remove responsive code if you don't want the slider scales while window resizes
+    function ScaleSlider() {
+        centerWidth = $(window).width();
+        centerHeight = $(window).height();
+        var originalWidth = jssor_slider1.$GetOriginalWidth();
+        var originalHeight = jssor_slider1.$GetOriginalHeight();
+        var scaleWidth;
+		
+		var imgWidth = $(".slideImg").width();
+		var imgHeight = $(".slideImg").height();
+		var sliderWidth = $(".slideImgArea").width();
+		var sliderHeight = $(".slideImgArea").height();				
+
+        if (centerWidth > centerHeight) {
+            scaleWidth = Math.ceil(centerHeight / originalHeight * originalWidth);
+        } else {
+            scaleWidth = centerWidth
+        }
+        jssor_slider1.$SetScaleWidth(scaleWidth);
+		
+		if (imgWidth/imgHeight < sliderWidth/sliderHeight) {
+			imgWidth = imgWidth*(sliderHeight/imgHeight);
+			imgHeight = sliderHeight;
+		} else if (imgWidth/imgHeight > sliderWidth/sliderHeight) {
+			imgHeight = imgHeight * (sliderWidth/imgWidth);
+			imgWidth = sliderWidth;
+		} else {
+			imgHeight = sliderHeight;
+			imgWidth = sliderWidth;
+		}
+		$(".slideImg").css({
+			top:0,
+			left:(sliderWidth - imgWidth)/2,
+			align:"center"
+		});
+		$(".slideImg").width(imgWidth);
+		$(".slideImg").height(imgHeight);  		
+    }
+
+    setTimeout(function(){ScaleSlider()},1000);
+    if (!navigator.userAgent.match(/(iPhone|iPod|iPad|BlackBerry|IEMobile)/)) {
+        $(window).bind('resize', ScaleSlider);
+    }
+    else {
+        $(window).bind("orientationchange", ScaleSlider);
+    }
+
+    $(window).on("orientationchange", function (event) {
+        ScaleSlider();
+        $('#linkbarCa').css({
+            left: ($(window).width() - $('#linkbarCa').outerWidth()) / 2,
+            top: ($(window).height() - $('#linkbarCa').outerHeight()) / 2,
+            zIndex: 9999
+        });
+        $("#cgb").css({
+            position: "absolute",
+            right: "0px",
+            top: $("#cga").position().top
+        });
+        $("#colors_demo").css({
+            position: "absolute",
+            width: window.innerWidth - 50,
+            left: "25px",
+            top: $("#slider1_container").position().top,
+            zIndex: 9999
+        });
+        $("#colors_sketch").css({
+            position: "absolute",
+            width: window.innerWidth - 50,
+            left: "0px",
+            zIndex: 9998
+        });
+        $("#colors_sketch2").css({
+            position: "absolute",
+            width: $("#colors_sketch").width(),
+            left: "0px",
+            zIndex: 9999
+        });	  
+		canvasHeight = $("#slider_footer").position().top - $("#slider1_container").position().top - $(".tools").height();
+		canvasWidth = window.innerWidth - 50;	
+		$("#colors_sketch").attr("height", canvasHeight);
+		$("#colors_sketch").attr("Width", canvasWidth);
+        $("#colors_sketch2").attr("height", canvasHeight);
+        $("#colors_sketch2").attr("Width", $("#colors_sketch").width());
+        $("#canvasDownload").attr("data-download1", pageData.session.currentPage);        
+    });
+
+    //-------------------------------------------
+    // FeedBack settings below
+    //-------------------------------------------
+    $("#tabs2").on("click", function (event, ui) {
+        $("#cgb").css({
+            position: "absolute",
+            right: "0px",
+            top: $("#cga").position().top
+        })
+    });
+	
+	var feedbackUnderstandability = 0,
+		feedbackSpeed = 0;
+
+    $('input[type=radio][name=radio-choice-h-1]').change(function () {
+//        $('input[type=radio][name=radio-choice-h-1]').attr("disabled", true);
+        if (feedbackUnderstandability == 0) {
+			$.ajax({
+				type: "POST",
+				url: "feedback/submit",
+				dataType: "json",
+				data: {"page": synchronisePage, "feedbackOptionId": "1"},
+				success: function (response) {
+
+				}
+			});
+		}
+		feedbackUnderstandability = 1;
+    });
+
+    $('input[type=radio][name=radio-choice-h-2]').change(function () {
+//        $('input[type=radio][name=radio-choice-h-2]').attr("disabled", true);
+        if (feedbackSpeed == 0) {
+			$.ajax({
+				type: "POST",
+				url: "feedback/submit",
+				dataType: "json",
+				data: {"page": synchronisePage, "feedbackOptionId": "2"},
+				success: function (response) {
+
+				}
+			});
+		}
+		feedbackSpeed = 1;
+    });
+
+    //-------------------------------------------
+    // Note & Comment settings below
+    //-------------------------------------------
+	
+	var commentStartPage = 0,
+		noteStart = 0,
+		noteCurrentPage = [];
+		
+	var noteTimeout;		
+	
+	$("#noteArea1").on('keydown', function() {
+		clearTimeout(noteTimeout);
+		if (noteStart == 0) {
+			if (noteCurrentPage[currentPage - 1] != 1) {
+				$('#noteArea1').val($('#noteArea1').val()+ "\r\n#" + currentPage + "#\r\n");
+				noteCurrentPage[currentPage - 1] = 1;
+			}			
+			noteStart = 1;
+		} else {
+			noteTimeout = setTimeout(function(){
+				noteStart = 0;
+			}, 1000*20)
+		}
+	});			
+	
+    $("#noteSubmit").click(function () {
+        if (userId == "undefined" || userId == 0) {
+            alert("Anonymous user cannot save notes.");
+        } else {
+            if ($("#noteArea1").val() != '') {
+                $.ajax({
+                    type: "POST",
+                    url: "note/submit",
+                    dataType: "json",
+                    data: {"page": synchronisePage, "content": $("#noteArea1").val(), "userId": userId, "sessionId": sessionId},
+                    success: function (response) {
+                        alert("Note Saved!");
+                    }
+                });
+            } else {
+                alert("Please Enter Note Before Save!");
+            }
+        }
+    });
+	
+	$("#commentArea1").keydown(function(){
+		if ($("#commentArea1").val() == '') {
+			commentStartPage = currentPage;
+		} else {
+		
+		}	
+	});	
+
+    $("#commentSubmit").click(function () {
+        if ($("#commentArea1").val() == '') {
+            alert("Please Enter Comment Before Submit!");
+        } else {
+			if (currentPage == commentStartPage) {
+				$.ajax({
+					type: "POST",
+					url: "comment/submit",
+					dataType: "json",
+					cache: false,
+					data: {"page": commentStartPage, "content": $("#commentArea1").val()},
+					success: function (response) {
+						alert("Question submitted!");
+						comments += $("#commentArea1").val() + String.fromCharCode(13);
+						$("#commentArea1").val('');
+					}
+				});
+			} else {
+				$("#alertsDialog").popup("open");
+				$("#alerts").append("<div id=\"alertsComment\"></div>")
+				$("#alertsComment").append("<label style=\"color:#000099;\"><br>Page changed! <br><br> Submit to</label>");
+				$("#alertsComment").append("<p id=\"alertsType\" style=\"display:none;\">comment</p>");
+				$("#alertsConfirm").text('Previous: Page ' + commentStartPage);
+				$("#alertsCancel").text('Current: Page ' + currentPage);
+			}
+        }
+    });
+
+    $("#exportNoteToTxt").click(function () {
+		var a = $("#noteArea1").val() + " \r\n" + tagTranslateExport;
+		var blob = new Blob([a], {
+            type: "text/csv;charset=utf-8;",
+        });
+        saveAs(blob, "Note for <%= req.session.sSessionName %>.txt");
+    });
+	
+	$("#exportNoteToEverN").click(evernoteListNoteBook);
+			
+	window.evernoteCallback = function () {
+		evernoteListNoteBook();
+	}			
+			
+	function evernoteListNoteBook(){
+		$.ajax({
+			type: "POST",
+			url: "evernote/listnotebook",
+			dataType: "json",
+			cache: false,
+			data: {},
+			success: function(response) {
+				if (response.error) {
+					window.open("/evernote/connect");
+				} else {
+					for (var i=0; i<response.length; i++) {
+						$("#everNoteSelect").append("<option value=\"" + response[i].guid + "\"><a>" + response[i].name + "</a></option>").selectmenu();
+					}
+					$("#dialog-exportEverNote").popup("open");
+				}
+			}
+		});
+	}			
+
+	$("#everNoteConfirm").click(function(){
+		if ($("#noteTitle").val() == '') {
+			alert("Enter Note Title!");
+		} else {
+			var noteBody = $("#noteArea1").val();	
+			
+			for (var i=0; i<pageData.session.totalPage; i++) {
+				var a = pageData.page.image[i];
+				noteBody = noteBody.replace("#" + (i+1) + "#", "<br />#" + (i+1) + "#<br /><img src=\"" + a + "\"></img><br />");
+			}  
+			tagTranslateExport = tagTranslateExport.replace(/[\r\n]/g, "<br />");
+
+			$.ajax({
+				type: "POST",
+				url: "evernote/newnote",
+				dataType: "json",
+				cache: false,
+				data: {"note_title": $("#noteTitle").val(), "note_body": noteBody + " <br />" + tagTranslateExport, "notebook_guid": $("#everNoteSelect option:selected").val()},
+				success: function(response) {
+					alert("Export Success!");
+				}
+			});
+			$("#dialog-exportEverNote").popup("close");
+		}				
+	});
+	$("#dialog-exportEverNote").popup({
+		afterclose: function(event, ui) {
+			$("#everNoteSelect").empty();
+		}
+	});
+	
+	var OrC = 0;
+		commentDisplayContent = "";
+		
+	$("#popupCommentDisplay").css({
+		width: $(window).width() * 0.5,
+		zIndex: 9999
+	}); 	
+
+	socket.on('commentDialog', function(res) {
+		OrC = res.data.OrC;
+		commentDisplayContent = res.data.content;
+		if (res.data.OrC == 0) {
+            $("#popupCommentDisplayText").empty();
+			var p = $("<p></p>");
+			var slideNoteRes = res.data.content.replace(/\^\^/g, "<br>");
+			p.append("<span>" + slideNoteRes + "</span>");
+			p.appendTo("#popupCommentDisplayText");		
+		} else {
+            
+		}
+        $("#popupCommentDisplayIcon").trigger('click');
+	});			
+	
+	socket.on('commentReceive', function(res) {
+		if (res.page == currentPage) {
+			$("#displayAllQuestion").append("<p class=\"question question" + res.page + "\">" + res.content + "</p>");
+		} else {
+			$("#displayAllQuestion").append("<p style=\"display:none;\" class=\"question question" + res.page + "\">" + res.content + "</p>");
+		}
+	});	
+
+    //-------------------------------------------
+    // Quiz settings below
+    //-------------------------------------------
+	
+	var quizStopSetTimeout = {};
+	var quizStopInterval = {};   
+
+    socket.on('quizStart', function (res) {
+        console.log('Quiz Start: question ' + res.quiz.id);
+        $('#tabs3').trigger("click");
+        var quizQuestion = JSON.parse(res.quiz.question);
+        if ($("#quiz" + res.quiz.id).length) {
+
+        } else {
+            if (res.quiz.options === 0) {
+                $("#Quiz").append("<div data-role=\"collapsible\" id=\"quizQuestion" + res.quiz.id + "\"></div>");
+                $("#quizQuestion" + res.quiz.id).append("<h3 id=\"quiz" + res.quiz.id + "\">Question for page " + res.quiz.page + "   <b>KeyWord:</b> " + res.quiz.keyword + " <span style=\"color:red;\" id=\"quizQuestionLabel" + res.quiz.id + "T\"></span></h3>");
+                $("#quizQuestion" + res.quiz.id).append("<p>" + quizQuestion.question + "</p>");
+                $("#quizQuestion" + res.quiz.id).append("<textarea id=\"quizTextArea" + res.quiz.id + "\" class=\"ui-corner-all ui-widget-content\" style=\"height:90%;width:90%;padding:5px; font-family:Sans-serif; font-size:1.2em;\"></textarea>")
+            } else {
+                $("#Quiz").append("<div data-role=\"collapsible\" id=\"quizQuestion" + res.quiz.id + "\"></div>");
+                $("#quizQuestion" + res.quiz.id).append("<h3 id=\"quiz" + res.quiz.id + "\">Question for page " + res.quiz.page + "   <b>KeyWord:</b> " + res.quiz.keyword + "</h3>");
+                $("#quizQuestion" + res.quiz.id).append("<div id=\"quizQuestion" + res.quiz.id + "\"><p>" + quizQuestion.question + "</p></div>");
+                for (var n = 0; n < quizQuestion.options.length; n++) {
+                    $("#quizQuestion" + res.quiz.id).append("<input type=\"checkbox\" name=\"quiz" + res.quiz.id + "Checkbox\" id=\"quiz" + res.quiz.id + "Checkbox" + n + "\" data-mini=\"true\"><label for=\"quiz" + res.quiz.id + "Checkbox" + n + "\">" + quizQuestion.options[n] + "</label>");
+                }
+            }
+            $("#Quiz").collapsibleset().trigger('create');
+        }
+		
+		if (quizStopSetTimeout[res.quiz.id]) {
+			clearTimeout(quizStopSetTimeout[res.quiz.id]);
+		}
+		
+		if (quizStopInterval[res.quiz.id]) {
+			clearInterval(quizStopInterval[res.quiz.id]);
+		}			
+		
+		if (res.timer != 0) {
+			var quizStopTimerCount = res.timer/1000;
+			quizStopSetTimeout[res.quiz.id] = setTimeout(function(){
+				console.log('res.quiz.id: ' + res.quiz.id);
+				$.ajax({
+					type: "POST",
+					url: "quiz/stop",
+					dataType: "json",
+					cache: false,
+					data: {"quizId": res.quiz.id},
+					success: function(response) {
+						
+					}
+				});	
+			}, res.timer);
+			quizStopInterval[res.quiz.id] = setInterval(function () {
+				if (quizStopTimerCount != 0) {
+					quizStopTimerCount--;
+					$("#quizQuestionLabel" + res.quiz.id + "T").text(quizStopTimerCount + " Secs");
+				} else {
+					$("#quizQuestionLabel" + res.quiz.id + "T").text('');
+					clearInterval(quizStopInterval[res.quiz.id]);
+				}
+			}, 1000);
+		}
+    });
+
+    socket.on('quizStop', function (res) {
+        console.log('Quiz End: question' + res.id);
+        if (res.options == 0) {
+            $.ajax({
+                type: "POST",
+                url: "quiz/submit",
+                dataType: "json",
+                data: {"quizId": res.id, "answer": $("#quizTextArea" + res.id).val()},
+                success: function (response) {
+
+                }
+            });
+        } else {
+            for (var i = 0; i < res.options; i++) {
+                if ($("#quiz" + res.id + "Checkbox" + i).is(':checked')) {
+                    $.ajax({
+                        type: "POST",
+                        url: "quiz/submit",
+                        dataType: "json",
+                        data: {"quizId": res.id, "answer": $("label[for='quiz" + res.id + "Checkbox" + i + "']").text()},
+                        success: function (response) {
+
+                        }
+                    });
+                }
+            }
+        }
+        $("#Quiz").children().collapsible("collapse");
+        $("#quizQuestion" + res.id).remove();
+        $("#quiz" + res.id).remove();
+    });
+
+    //-------------------------------------------
+    // Tag-Translate settings below
+    //-------------------------------------------
+	
+	var tagTranslateExport = "";
+    
+    $("#translations").css({
+        height: window.innerHeight - $("#comboboxLanguage").height() - $("#navbarTabs").height()
+    });
+
+    socket.on('sentFileId', function (response) {
+        fileId = response.data.fileId;
+        filePage = response.data.filePage + 1;
+    });
+	
+	var previousSlidePage = 0;
+    jssor_slider1.$On($JssorSlider$.$EVT_PARK, function (slideIndex, fromIndex) {
+		$("div[u='loading']").hide();
+		if (slideIndex == 0) {
+			$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			$("#slidePrePage img").attr("src", pageData.page.image[slideIndex]);
+			$("#slideNextPage img").attr("src", pageData.page.image[slideIndex + 1]);
+			previousSlidePage = slideIndex;	
+		} else {
+			if (Math.abs(slideIndex - previousSlidePage) > 2) {
+				$("#slideImg" + (previousSlidePage - 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + previousSlidePage).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage + 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage - 1)).remove();
+				$("#slideImg" + previousSlidePage).remove();
+				$("#slideImg" + (previousSlidePage + 1)).remove();
+				$(".slideImgArea[debug-id='slide-" + (slideIndex - 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex - 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex - 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			} else if (slideIndex - previousSlidePage == 2) {
+				$("#slideImg" + (previousSlidePage - 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + previousSlidePage).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage - 1)).remove();
+				$("#slideImg" + previousSlidePage).remove();				
+				$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			} else if (slideIndex - previousSlidePage == -2) {
+				$("#slideImg" + previousSlidePage).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage + 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage)).remove();
+				$("#slideImg" + previousSlidePage + 1).remove();				
+				$(".slideImgArea[debug-id='slide-" + (slideIndex - 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex - 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex - 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");				
+			} else if (slideIndex - previousSlidePage == 1) {
+				$("#slideImg" + (previousSlidePage - 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage - 1)).remove();		
+				if (slideIndex == 1) {
+					$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");				
+				}				
+				$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");			
+			} else if (slideIndex - previousSlidePage == -1) {
+				$("#slideImg" + (previousSlidePage + 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage + 1)).remove();		
+				$(".slideImgArea[debug-id='slide-" + (slideIndex - 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex - 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex - 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");				
+			}
+			previousSlidePage = slideIndex;
+			$("#slidePrePage img").attr("src", pageData.page.image[slideIndex - 1]);
+			$("#slideNextPage img").attr("src", pageData.page.image[slideIndex + 1]);			
+		}
+		ScaleSlider();
+        
+        pageData.session.currentPage = slideIndex + 1;
+        pageData.session.currentFileName = pageData.session.slides[slideIndex].name;
+        pageData.session.currentFileId = pageData.session.slides[slideIndex].fileId;
+        pageData.session.currentFilePage = pageData.session.slides[slideIndex].page + 1;        
+
+		currentPage = slideIndex + 1;
+        $(".sortedList").hide();
+        $(".sortedList" + slideIndex).show();
+        fileId = currentFilePage[slideIndex].fileId;
+        filePage = currentFilePage[slideIndex].page + 1;
+        if ($("#comboboxLanguage").val() == '') {
+
+        } else {
+            sortedList(slideIndex);
+        }
+		
+	//	slideRating(slideIndex);
+		$(".question").hide();
+		$(".question" + currentPage).show();	
+    });
+
+    $("#comboboxLanguage")
+            .change(function () {
+                $.mobile.loading("show", {
+                    text: 'Loading Translation',
+                    textVisible: true,
+                    theme: "a",
+                    html: ""
+                });
+                sortedList(currentPage - 1);
+            });
+
+    function sortedList(page) {
+        $.ajax({
+            type: "POST",
+            url: "translation/getkeywords",
+            dataType: "json",
+            data: {"fileId": fileId, "page": filePage},
+            success: function (response) {
+                if (response.msg) {
+
+                } else {
+                    $("#sortedList" + page).empty();
+                    $("#sortedList" + page).remove();
+                    $("#translations").append("<ul data-role=\"listview\" data-autodividers=\"true\" class=\"sortedList sortedList" + page + "\" id=\"sortedList" + page + "\"></ul>");
+                    for (var i = 0; i < response.tags.length; i++) {
+
+                    }
+                    $.each(response.tags, function (i, val) {
+                        if (/^[a-zA-Z ]+$/.test(val.tag)) {
+                            var tagTranslation = '';
+                            var li = $("<li id=" + page + "Page" + i + ">"),
+                                label = $("<label style=\"display:none;width:95%;margin-left:2px;\" id=\"label" + page + "Page" + i + "\" for=" + page + "Page" + i + "\">");
+                            	labelCustom = $("<label style=\"display:none;width:95%;margin-left:2px;\" id=\"customTranslationLabelCustom" + page + "Page" + i + "\">");
+							$("<a style=\"font-size:120%;padding-left:2px;\">").text(val.tag).appendTo(li);
+                            li.appendTo("#sortedList" + page);
+                            labelCustom.appendTo("#sortedList" + page);
+                            label.appendTo("#sortedList" + page);
+                            li.click({'word': val.tag, 'language': $("#comboboxLanguage").val()}, function (res) {
+								if ($("#label" + page + "Page" + i).text() == '') {
+									$.ajax({
+										type: "GET",
+										url: "translation/getcustom",
+										dataType: "json",
+										data: {"word": res.data.word},
+										success: function (response) {
+											if (response.error) {
+												
+											} else {
+												$("#customTranslationLabelCustom" + page + "Page" + i).append("<a>Custom: " + response.translation + "</a>");
+												tagTranslateExport += "Custom: \r\n[" + res.data.word + "] : " + response.translation + " \r\n";
+											}
+											$("#customTranslationLabelCustom" + page + "Page" + i).show();											
+										}
+									});		                                
+                                    $.ajax({
+                                        type: "GET",
+                                        url: "translation/translate",
+                                        dataType: "json",
+                                        data: {"word": res.data.word, "language": res.data.language},
+                                        success: function (response) {
+                                            if (response.error) {
+                                                $("#label" + page + "Page" + i).show();
+                                                $("#label" + page + "Page" + i).append("<a>" + $("#comboboxLanguage option:selected").text() + ": Not available</a>");
+                                            } else {
+                                                tagTranslation = JSON.parse(response.translation).join(",");
+                                                $("#label" + page + "Page" + i).show();
+                                                $("#label" + page + "Page" + i).append("<a>" + $("#comboboxLanguage option:selected").text() + ": " + tagTranslation + "</a>");
+												tagTranslateExport += $("#comboboxLanguage option:selected").text() + ": \r\n[" + res.data.word + "] : " + tagTranslation + " \r\n";
+                                            }
+                                        }
+                                    });								
+                                } else {
+									
+                                }
+								if ($("#label" + page + "Page" + i).is(':hidden') === true) {
+									$("#label" + page + "Page" + i).show();
+                                    $("#customTranslationLabelCustom" + page + "Page" + i).show();
+								} else {
+									$("#label" + page + "Page" + i).hide();
+                                    $("#customTranslationLabelCustom" + page + "Page" + i).hide();
+								}
+                            });
+                        } else {
+
+                        }
+                    });
+                    $("#sortedList" + page).listview().trigger("refresh");
+                    $.mobile.loading("hide");
+                }
+            }
+        });
+    }
+
+    $('#linkbarCa').css({
+        left: ($(window).width() - $('#linkbarCa').outerWidth()) / 2,
+        top: ($(window).height() - $('#linkbarCa').outerHeight()) / 2,
+        zIndex: 9999
+    });
+    var linkBarCaTimeoutId;
+    $("#sorter li").hover(function () {
+        clearTimeout(linkBarCaTimeoutId);
+        $(this).addClass("ui-btn").removeClass("ui-li-static");
+        $("#linkbarCa").append("<p>" + $(this).text() + "</p>");
+        $("#linkbarCa").show();
+        linkBarCaTimeoutId = setTimeout(function () {
+            $("#linkbarCa").hide();
+        }, 2000);
+        var top,
+                letter = $(this).text(),
+                divider = $("#sortedList" + (currentPage - 1)).find("li.ui-li-divider:contains(" + letter + ")");
+        if (divider.length > 0) {
+            top = divider.offset().top;
+            $.mobile.silentScroll(top);
+        } else {
+            return false;
+        }
+    }, function () {
+        $(this).removeClass("ui-btn").addClass("ui-li-static");
+        $("#linkbarCa").empty();
+        $("#linkbarCa").hide();
+    });
+
+    var sorterTop;
+    sorterTop = $("#translations").position().top;
+    $.mobile.window.on("scroll", function (e) {
+        var headTop = $(window).scrollTop(),
+            head = $(".ui-page-active [data-role='header']");
+
+        if (headTop < sorterTop) {
+            $("#sorter").css({
+                "top": sorterTop - headTop,
+                "height": window.innerHeight - sorterTop + headTop - $("#navbarTabs").height()
+            });
+        } else {
+            $("#sorter").css({
+                "top": "15px",
+                "height": window.innerHeight - $("#navbarTabs").height()
+            });
+        }
+    });
+    $.mobile.window.on("throttledresize", function () {
+        $("#sorter").height($(window).height() - $("#navbarTabs").height()).css("top", sorterTop);
+    });
+
+    //-------------------------------------------
+    // Multiple-files settings below
+    //-------------------------------------------
+    var currentFilePage = {};
+    $.ajax({
+        type: "GET",
+        url: "session/getuploadedfiles",
+        dataType: "json",
+        data: {"sessionId": sessionId},
+        success: function (response) {
+			var filepage = 0;
+            var slides = [];
+            for (var i = 0; i < response.length; i++) {
+                if (response[i].type == "pdf") {
+					for (var n = filepage; n < filepage + response[i].size; n++) {
+						currentFilePage[n] = {"name": response[i].name, "page": n - filepage, "fileId": response[i].id};
+                        slides[n] = {"name":response[i].name, "page":n - filepage, "fileId": response[i].id, "startPage": filepage};
+					}
+					filepage += response[i].size;
+				} else if (response[i].type == "url") {
+				
+				} else {
+				
+				}
+            }
+            pageData.session.slides = slides;
+        }
+    });
+	
+	//-------------------------------------------
+	// Evaluation settings below
+	//-------------------------------------------	
+	
+	var evaluation = Array();
+
+	$("#evaluationConfirm").click(function () {
+		if (confirm("Submit Evaluation?")) {
+			for (var i=0; i< evaluation.length; i++) {
+				if (evaluation[i].options == 0) {
+					$.ajax({
+						type: "POST",
+						url: "evaluation/submit",
+						dataType: "json",
+						cache: false,
+						data: {"evaluationId": evaluation[i].id ,"feedback": $("#evaluationTextArea" + evaluation[i].id).val()},
+						success: function(response) {
+							
+						}
+					});						
+				} else {
+					for (var ii = 0; ii < evaluation[i].options; ii ++) {
+						if ($("#evaluation" + evaluation[i].id + "Checkbox" + ii).is(':checked')) {
+                            $.ajax({
+								type: "POST",
+								url: "evaluation/submit",
+								dataType: "json",                                  
+								data: {"evaluationId": evaluation[i].id, "feedback": $("label[for='evaluation" + evaluation[i].id + "Checkbox" + ii + "']").text()},
+								success: function(response) {
+								
+								}
+							});						
+						} 
+					}							
+				}
+			}
+			$('#evaluationDialog' ).popup('close');
+			$("#evaluation").empty();
+		} else {
+		
+		}
+	});
+	
+	$("#evaluationCancel").click(function () {
+		$("#evaluation").empty();
+		$('#evaluationDialog' ).popup('close');
+	});	
+	
+	socket.on('evaluationStart', function(res){
+		evaluation = res;
+		if (res.length > 0) {
+			if (!$.trim( $('#evaluation').html() ).length) {
+				for (var i=0; i < res.length; i ++) {
+					$("#evaluation").append("<div id=\"evaluation" + res[i].id + "\"></div>")
+					$("#evaluation" + res[i].id).append("<h2>" + JSON.parse(res[i].question).question + "</h2>");
+					if (res[i].options == 0) {
+						$("#evaluation" + res[i].id).append("<textarea id=\"evaluationTextArea" + res[i].id + "\" class=\"ui-corner-all ui-widget-content\" style=\"height:90%;width:90%;padding:5px; font-family:Sans-serif; font-size:1.2em;\"></textarea>")
+					} else {
+						for (var n=0; n < res[i].options; n++) {
+							$("#evaluation" + res[i].id).append("<input type=\"checkbox\" class=\"evaluationCheckbox" + res[i].id + "\" id=\"evaluation" + res[i].id + "Checkbox" + n + "\" data-mini=\"true\"><label for=\"evaluation" + res[i].id + "Checkbox" + n + "\">" + JSON.parse(res[i].question).options[n] + "</label>");
+						}
+						var $unique = $('input.evaluationCheckbox' + res[i].id);
+						$unique.click({"id": res[i].id}, function(data) {
+							$unique = $('input.evaluationCheckbox' + data.data.id);
+							$unique.filter(':checked').not(this).prop('checked', false).checkboxradio("refresh");
+						});									
+					}
+				}				
+			} else {
+
+			}
+			$("#evaluation").trigger('create');
+			$('#evaluationDialog' ).popup('open');
+		} else {
+			
+		}
+	});
+	
+    //-------------------------------------------
+    // canvas settings below
+    //-------------------------------------------
+
+/*	$.ajax({
+		type: "GET",
+		url: "Socket/detectIe",
+		cache: false,
+		success: function(response) {
+			if (response.message == 'ie') {
+				$("#canvasDownload").hide();
+			}
+		}
+	});	*/
+	
+    //-------------------------------------------
+    // socket settings below
+    //-------------------------------------------
+	
+    // create or join socket room
+    socket.post('/socket/broadcast', {'event': 'getFileId'}, function (response) {
+
+    });
+	socket.post('/socket/join', function(response) {
+		pageData.session.roomNumber = response.participantNumber;
+	});
+    socket.get('/socket/getcurrentpage', function (response) {
+        currentPage = response.page + 1;
+        synchronisePage = response.page + 1;
+		if (jssor_slider1.$SlidesCount() == 1) {
+			jssor_slider1.$TriggerEvent($JssorSlider$.$EVT_PARK, 0, 0);
+		} else {
+			jssor_slider1.$GoTo(response.page);
+		}
+    });
+
+    socket.on('disconnect', function () {
+        socket.post('/socket/join', function (response) {
+
+        });
+    });
+
+    socket.on('sessionEnd', function (res) {
+        socket.removeAllListeners('disconnect');
+        $.ajax({
+            type: "GET",
+            url: "/logout",
+            success: function (response) {
+                alert("This session has been ended! You now have 5 minutes to save your file!");
+                setTimeout(function () {
+                    window.location.href = '/login';
+                }, 1000 * 300);
+            }
+        });
+    });
+
+    var synchronisePage;
+    socket.on('pageSynchronise', function (res) {
+        console.log('synchronise page to page ' + res.page);
+        synchronisePage = res.page + 1;
+        fileId = res.fileId;
+        jssor_slider1.$GoTo(res.page);
+        opReset();
+    });
+
+    function opReset() {
+		$("#radio-choice-h-1a").prop("checked", true).checkboxradio("refresh");
+		$("#radio-choice-h-1b").prop("checked", false).checkboxradio("refresh");
+		$("#radio-choice-h-2a").prop("checked", true).checkboxradio("refresh");
+		$("#radio-choice-h-2b").prop("checked", false).checkboxradio("refresh");
+		$('input[type=radio][name=radio-choice-h-1]').attr("disabled", false).checkboxradio("refresh");
+        $('input[type=radio][name=radio-choice-h-2]').attr("disabled", false).checkboxradio("refresh");   
+		feedbackUnderstandability = 0;
+		feedbackSpeed = 0;
+    }
+	
+    //-------------------------------------------
+    // chat settings below
+    //-------------------------------------------	
+	
+	var groupNum = 0;
+
+	socket.on('chatOpen', function(res) {
+		$('#dialog-grouppower' ).popup('open');
+	});		
+
+	$("#chatTextEnter").click(function(){
+			$("#chatContent").append("<p>Anonymous: " + $("#chatTextarea").val() + "</p>");
+			socket.post('/socket/broadcast', {'event':'chatContentBroadcast', 'data':{"content": $("#chatTextarea").val(), "user": "Anonymous", "group": groupNum}}, function(response) {console.log(response);});
+			$("#chatTextarea").val("");
+			$("#chatContent").scrollTop($("#chatContent")[0].scrollHeight);
+		});
+		
+	socket.on('chatContentBroadcast', function(res) {
+		if (res.data.group == groupNum) {
+			$("#chatContent").append("<p>" + res.data.user + ": " + res.data.content + "</p>");
+			$("#chatContent").scrollTop($("#chatContent")[0].scrollHeight);
+		}
+	});			
+	
+	socket.on('chatNew', function(res) {
+		$("#chatContent").empty();
+	});			
+	
+	socket.on('chatSplit', function(res) {
+		$.ajax({
+			type: "GET",
+			url: "chat/getGroup",
+			dataType: "json",
+			cache: false,
+			data: {},
+			success: function(response) {
+				console.log("chatSplit: " + response.groupNumber);
+				groupNum = response.groupNumber;
+			}
+		});
+	});		
+	
+	//-------------------------------------------
+	// Streaming settings below
+	//-------------------------------------------		
+
+	$("#jquery_jplayer_1").jPlayer({
+		ready: function (event) {
+			$(this).jPlayer("setMedia", {
+				oga: "http://www.tkiee.com/stream/" + pageData.session.sessionKey.toUpperCase()
+			});
+		},
+		swfPath: "../js",
+		supplied: "oga",
+		wmode: "window",
+		smoothPlayBar: true,
+		keyEnabled: true,
+		remainingDuration: true,
+		toggleDuration: true,
+		preload: "none"
+	});
+	
+	socket.on('stopRecording', function(){
+	//	$("#jquery_jplayer_1").jPlayer("pause");
+		if($('#jquery_jplayer_1').data().jPlayer.status.paused != true){
+			$(".jp-stop").trigger("click");
+		}		
+	});
+	
+	socket.on('startStreaming', function(){
+
+	});		
+	
+	socket.on('stopStreaming', function(){
+
+	});
+
+	$.ajax({
+		type: "GET",
+		url: "session/isStreaming",
+		dataType: "json",
+		cache: false,
+		data: {"sessionid": sessionId},
+		success: function(response) {
+			if (response.isStreaming == true) {
+				$("#streamPlayIcon").show();
+			}
+		}
+	});	
+	
+    //-------------------------------------------
+    // Slide rating & tag settings below
+    //-------------------------------------------		
+
+	
+    //-------------------------------------------
+    // other settings below
+    //-------------------------------------------
+	
+/*	navigator.sayswho= (function(){
+		var ua= navigator.userAgent, tem, 
+		M= ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+		if(/trident/i.test(M[1])){
+			tem=  /\brv[ :]+(\d+)/g.exec(ua) || [];
+//			return 'IE '+(tem[1] || '');
+			return 'IE';
+		}
+		if(M[1]=== 'Chrome'){
+			tem= ua.match(/\bOPR\/(\d+)/)
+		//	if(tem!= null) return 'Opera '+tem[1];
+			if(tem!= null) return 'Opera';
+		}
+		M= M[2]? [M[1], M[2]]: [navigator.appName, navigator.appVersion, '-?'];
+		if((tem= ua.match(/version\/(\d+)/i))!= null) M.splice(1, 1, tem[1]);
+//		return M.join(' ');
+		return M[0];
+	})();  */
+	
+	var OSName = "Unknow OS";
+	var BrowserName = "Unknow";
+	if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
+	if (navigator.appVersion.indexOf("Mac")!=-1) OSName="MacOS";
+	if (navigator.appVersion.indexOf("X11")!=-1) OSName="UNIX";
+	if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
+	
+	if (navigator.appVersion.indexOf("7.0 Mobile") != -1) BrowserName="7.0";
+	if (navigator.appVersion.indexOf("8.0 Mobile") != -1) BrowserName="8.0";
+
+/*	var detectTabChange = 1;
+	var detectTabChangeSafari = 0;
+	
+	if (OSName == "MacOS") {
+		if (BrowserName == "8.0") {
+			window.onpageshow=function() {
+				$("#detectTabChange").text(detectTabChangeSafari);
+				detectTabChangeSafari++;
+			};		
+			window.onblur=function(){
+				$("#detectTabChange").text(detectTabChangeSafari);
+				detectTabChangeSafari++;
+			}		
+		} else {
+			window.onpageshow=function() {
+				$("#detectTabChange").text(detectTabChangeSafari);
+				detectTabChangeSafari++;
+			};
+		}
+
+	} else {
+		ifvisible.blur(function(){
+			$("#detectTabChange").text(detectTabChange);
+			detectTabChange++;
+		}); 		
+	}     */
+	
+	$( "#alertsDialog" ).popup({
+		afterclose: function( event, ui ) {
+			$("#alerts").empty();
+			$("#alertsConfirm").text('Confirm');
+			$("#alertsCancel").text('Cancel');
+		}
+	});	
+	
+	$("#alertsConfirm").click(function(){
+		if ($("#alertsType").text() == 'comment') {
+			alertDialog({"type": 'comment', "page": commentStartPage});
+		}
+		$("#alertsDialog").popup("close");	
+	});
+	
+	$("#alertsCancel").click(function(){
+		if ($("#alertsType").text() == 'comment') {
+			alertDialog({"type": 'comment', "page": currentPage});
+		}					
+		$("#alertsDialog").popup("close");
+	});	
+	
+	function alertDialog(Obj) {
+		if (Obj.type == 'comment') {
+			$.ajax({
+				type: "POST",
+				url: "comment/submit",
+				dataType: "json",
+				cache: false,
+				data: {"page": Obj.page, "content": $("#commentArea1").val()},
+				success: function(response) {
+					alert("Comments submitted!");
+					comments += $("#commentArea1").val() + String.fromCharCode(13);
+					$("#commentArea1").val('');
+				}
+			});		
+		}
+	}
+});
+</script>
+<div data-role="tabs">
+    <div data-role="header" style="overflow: hidden;">
+        <div data-role="controlgroup" data-type="horizontal" class="ui-mini ui-btn-left" id="controlTools" style="width: 20000px;">
+        <!--    <a id="openCanvas" href="#" class="ui-btn ui-btn-icon-right ui-icon-plus">Annotation</a>  -->
+            <a id="slideTag" href="#" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Tag Slide</a>
+            <a id="controlItemStreaming" href="#" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Streaming</a>
+			<a id="popupCommentDisplayIcon" href="#" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Display Question</a>
+			<a id="slideRatingIcon" href="#" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Slide Rating</a>  
+        </div>
+        <h6></h6>
+    </div>
+
+    <div data-role="footer" data-position="fixed" data-tap-toggle="false" id="navbarTabs">
+        <div data-role="navbar">
+            <ul>
+                <li><a id="tabs1" href="#reference"
+                       class="ui-btn ui-shadow ui-corner-all ui-icon-eye ui-btn-icon-bottom ui-btn-active">Reference</a>
+                </li>
+                <li><a id="tabs2" href="#feedBack"
+                       class="ui-btn ui-shadow ui-corner-all ui-icon-comment ui-btn-icon-bottom">Feedback</a></li>
+                <li><a id="tabs3" href="#Quiz"
+                       class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-icon-bottom">Quiz</a></li>
+                <li><a id="tabs4" href="#powerPoint"
+                       class="ui-btn ui-shadow ui-corner-all ui-icon-bullets ui-btn-icon-bottom">Slides & Notes</a></li>
+            </ul>
+        </div>
+    </div>
+    <div id="reference">
+        <div>
+            <select id="comboboxLanguage" style="margin-bottom:12px;">
+                <option value="">Select One...</option>
+				<option value="en_wiki">English Wiki</option>
+				<option value="med">Medical</option>
+                <option value="en_zh">Chinese</option>
+                <option value="jpn">Japanese</option>
+                <option value="en_kor">Korean</option>
+                <option value="en_viet">Vietnamese</option>     
+            </select>
+        </div>
+        <div id="linkbarCa"
+             style="position:fixed; display:none; font-size:200%; width:10%; height:10%;text-align:center">
+        </div>
+        <div role="main" class="ui-content" id="tagCloud">
+            <div id="sorter">
+                <ul data-role="listview" data-popup-enabled="true">
+                    <li><span>A</span></li>
+                    <li><span>B</span></li>
+                    <li><span>C</span></li>
+                    <li><span>D</span></li>
+                    <li><span>E</span></li>
+                    <li><span>F</span></li>
+                    <li><span>G</span></li>
+                    <li><span>H</span></li>
+                    <li><span>I</span></li>
+                    <li><span>J</span></li>
+                    <li><span>K</span></li>
+                    <li><span>L</span></li>
+                    <li><span>M</span></li>
+                    <li><span>N</span></li>
+                    <li><span>O</span></li>
+                    <li><span>P</span></li>
+                    <li><span>Q</span></li>
+                    <li><span>R</span></li>
+                    <li><span>S</span></li>
+                    <li><span>T</span></li>
+                    <li><span>U</span></li>
+                    <li><span>V</span></li>
+                    <li><span>W</span></li>
+                    <li><span>X</span></li>
+                    <li><span>Y</span></li>
+                    <li><span>Z</span></li>
+                </ul>
+            </div>
+            <div id="translations">
+            </div>
+        </div>
+    </div>
+    <div id="feedBack">
+        <div style="width:100%;">
+            <form style="width:100%;">
+                <fieldset data-role="controlgroup" data-type="horizontal" id="cga" style="position:relative;">
+                    <legend>Understandability:</legend>
+                    <input type="radio" name="radio-choice-h-1" id="radio-choice-h-1a" value="0" checked="checked">
+                    <label for="radio-choice-h-1a">Yes</label>
+                    <input type="radio" name="radio-choice-h-1" id="radio-choice-h-1b" value="1">
+                    <label for="radio-choice-h-1b">No</label>
+                </fieldset>
+                <fieldset data-role="controlgroup" data-type="horizontal" id="cgb" style="position:relative;">
+                    <legend>Speed:</legend>
+                    <input type="radio" name="radio-choice-h-2" id="radio-choice-h-2a" value="0" checked="checked">
+                    <label for="radio-choice-h-2a">Ok</label>
+                    <input type="radio" name="radio-choice-h-2" id="radio-choice-h-2b" value="1">
+                    <label for="radio-choice-h-2b">Too Fast</label>
+                </fieldset>
+            </form>
+        </div>
+        <div class="ui-corner-all custom-corners">
+            <div class="ui-bar ui-bar-a">
+                <h3>Question</h3>
+            </div>
+            <label for="commentArea" Class="ui-hidden-accessible">commentArea:</label>
+            <textarea name="commentArea" data-role="none" id="commentArea1" style="height:200px;width:99%;"></textarea>
+            <button class="ui-btn ui-corner-all" id="commentSubmit">Submit Question</button>
+        </div>
+<!--		<label for="detectTabChange" style="display:inline;">Possible distraction count: </label><p style="display:inline;" id="detectTabChange"> </p>	-->
+		<div id="displayAllQuestion" style="overflow:auto; height:40%;" class="ui-content">		
+			
+		</div>
+    </div>
+    <div data-role="collapsibleset" data-theme="a" data-content-theme="a" data-mini="true" id="Quiz">
+    </div>
+    <div id="powerPoint">
+        <div id="slider1_container"
+             style="position: relative; top: 0px; margin-left:auto; margin-right:auto; width: 800px; height:600px;">
+			<!-- Loading Screen -->
+            <div u="loading" style="position: absolute; top: 0px; left: 0px;">
+                <div style="filter: alpha(opacity=70); opacity:0.7; position: absolute; display: block;
+						background-color: #000000; top: 0px; left: 0px;width: 100%;height:100%;">
+                </div>
+                <div style="position: absolute; display: block; background: url(/js/img/loading.gif) no-repeat center center;
+						top: 0px; left: 0px;width: 100%;height:100%;">
+                </div>
+            </div>
+
+            <!-- Slides Container -->
+            <div u="slides" style="cursor: move; position: relative; left: 0px; top: 0px; width: 800px; height: 600px;
+					overflow: hidden;">
+                <% for (var i = 0; i < req.session.sSlidesInfo.pages ; i++) { %>
+                <div class="slideImgArea"><img class="slideImg" id="slideImg<%=i%>" u="image"
+						  src="/js/img/loading.gif" 
+                          border="0"
+                          style="width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;"/>
+                </div>
+                <% } %>
+            </div>
+
+            <!-- Bullet Navigator Skin Begin -->
+            <style>
+                /* jssor slider bullet navigator skin 03 css */
+                /*
+                .jssorb03 div           (normal)
+                .jssorb03 div:hover     (normal mouseover)
+                .jssorb03 .av           (active)
+                .jssorb03 .av:hover     (active mouseover)
+                .jssorb03 .dn           (mousedown)
+                */
+                .jssorb03 div, .jssorb03 div:hover, .jssorb03 .av {
+                    background: url(/js/img/b03.png) no-repeat;
+                    overflow: hidden;
+                    cursor: pointer;
+                }
+
+                .jssorb03 div {
+                    background-position: -5px -4px;
+                }
+
+                .jssorb03 div:hover, .jssorb03 .av:hover {
+                    background-position: -35px -4px;
+                }
+
+                .jssorb03 .av {
+                    background-position: -65px -4px;
+                }
+
+                .jssorb03 .dn, .jssorb03 .dn:hover {
+                    background-position: -95px -4px;
+                }
+            </style>
+            <!-- bullet navigator container -->
+            <div u="navigator" class="jssorb03" style="position: absolute; bottom: 4px; left: 6px;">
+                <!-- bullet navigator item prototype -->
+                <div u="prototype"
+                     style="position: absolute; width: 21px; height: 21px; text-align:center; line-height:21px; color:white; font-size:12px;">
+                    <NumberTemplate></NumberTemplate>
+                </div>
+            </div>
+            <style>
+                /* jssor slider arrow navigator skin 03 css */
+                /*
+                .jssora03l              (normal)
+                .jssora03r              (normal)
+                .jssora03l:hover        (normal mouseover)
+                .jssora03r:hover        (normal mouseover)
+                .jssora03ldn            (mousedown)
+                .jssora03rdn            (mousedown)
+                */
+                .jssora03l, .jssora03r, .jssora03ldn, .jssora03rdn {
+                    position: absolute;
+                    cursor: pointer;
+                    display: block;
+                    background: url(/js/img/a03.png) no-repeat;
+                    overflow: hidden;
+                }
+
+                .jssora03l {
+                    background-position: -3px -33px;
+                }
+
+                .jssora03r {
+                    background-position: -63px -33px;
+                }
+
+                .jssora03l:hover {
+                    background-position: -123px -33px;
+                }
+
+                .jssora03r:hover {
+                    background-position: -183px -33px;
+                }
+
+                .jssora03ldn {
+                    background-position: -243px -33px;
+                }
+
+                .jssora03rdn {
+                    background-position: -303px -33px;
+                }
+            </style>
+        </div>
+        <div class='demo' id='colors_demo' style="display:none;">
+          <div class='tools'>
+			<a href='#colors_sketch' data-download='png' style='float: right;' id="canvasDownload">Save</a>
+			<a href='#colors_sketch' data-clear='true' style='float: right; position:relative;margin-right:10px;'>Clear</a>
+          </div>
+          <canvas id="colors_sketch"></canvas>
+          <canvas id="colors_sketch2" style="display:none"></canvas> 
+        </div>
+		<div id="slider_footer" style="height:1px;"></div>
+		
+        <div class="ui-corner-all custom-corners">
+            <div class="ui-bar ui-bar-a">
+                <h3>My Notes</h3>
+            </div>
+            <label for="noteArea" Class="ui-hidden-accessible">noteArea:</label>
+            <textarea name="noteArea" data-role="none" id="noteArea1" style="height:200px;width:99%;"></textarea>
+            <button class="ui-btn ui-corner-all" id="noteSubmit">Save Note</button>
+            <button class="ui-btn ui-btn-inline ui-corner-all" id="exportNoteToTxt" style="position:relative;left:0px;">Export to Text</button>
+			<button class="ui-btn ui-btn-inline ui-corner-all" id="exportNoteToEverN" style="position:absolute;right:0px;">Export to EverNote</button>
+        </div>		
+		
+		<div id="streamingArea" style="display:none;">
+			<div id="jquery_jplayer_1" class="jp-jplayer"></div>
+			<div id="jp_container_1" class="jp-audio">
+				<div class="jp-type-single">
+					<div class="jp-gui jp-interface">
+						<ul class="jp-controls">
+							<button class="jp-play">Play</button>
+							<button class="jp-stop">Stop</button>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>				
+    </div>
+</div>
+
+<div data-role="popup" id="evaluationDialog" data-overlay-theme="a">
+	<div data-role="header" data-theme="a">
+		<h4>Evaluation</h4>
+	</div>
+	
+    <div id="evaluation" role="main" class="ui-content">
+	</div>
+	<button class="ui-btn ui-corner-all" id="evaluationConfirm">Confirm</button>
+	<button class="ui-btn ui-corner-all" id="evaluationCancel">Cancel</button>
+</div>
+
+<div data-role="popup" id="popupCommentDisplay" data-overlay-theme="a">
+    <a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-left">Close</a>
+	<p id="popupCommentDisplayText"></p>
+</div>
+
+<div data-role="popup" id="slideRatingDisplay" data-overlay-theme="a">
+    <a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-left">Close</a>
+	<p id="slideRatingDisplayText1" style="display:block;"></p>
+	<p id="slideRatingDisplayText2"></p>
+</div>
+
+<div data-role="popup" id="alertsDialog" data-overlay-theme="a">
+	<div id="alerts" role="main" class="ui-content">
+		
+	</div>
+	<button class="ui-btn ui-corner-all" id="alertsConfirm">Confirm</button>
+	<button class="ui-btn ui-corner-all" id="alertsCancel">Cancel</button>	
+</div>
+
+<div data-role="popup" data-close-btn="right" id="dialog-grouppower" data-dialog="true">
+		<div data-role="header">
+			<h1>Group Power</h1>
+		</div>
+
+		<div role="main" class="ui-content">
+			<div>
+				<select id="chatKeyWords" style="margin-bottom:12px;">
+					
+				</select>
+			</div>
+			<div id="chatContent" class="ui-content" style="height:200px;overflow:auto;">
+				
+			</div>
+			<textarea data-role="none" id="chatTextarea" style="height:200px;width:100%;"></textarea>
+			<a href="#" id="chatTextEnter" class="ui-btn ui-shadow ui-corner-all ui-btn-b">Enter</a>
+		</div>
+</div>
+
+<div data-role="popup" id="dialog-exportEverNote" data-overlay-theme="a">
+	<div role="main" class="ui-content">
+		<label>Enter note title</label>
+		<input id="noteTitle"></input>
+		<select id="everNoteSelect">
+			
+		</select>
+		<button class="ui-btn ui-corner-all" id="everNoteConfirm">Confirm</button>
+	</div>
+</div>
+
+<div data-role="popup" id="connectionAlert" style="width: 300px;">
+    <p style="font-color: red;">Warning! Connection to server failure. Reconnecting...</p>
+</div>

@@ -1,0 +1,1277 @@
+<meta name="viewport" minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" type="text/css" href="/styles/jquery.mobile-1.4.5.css">
+<link rel="stylesheet" type="text/css" href="/styles/tagCloud.css">
+<script type="text/javascript" src="/js/jquery-2.1.1.js"></script>
+<script type="text/javascript" src="/js/jquery.mobile-1.4.5.js"></script>
+<script type="text/javascript" src="/js/jssor.core.js"></script>
+<script type="text/javascript" src="/js/jssor.utils.js"></script>
+<script type="text/javascript" src="/js/jssor.slider.js"></script>
+<script type="text/javascript" src="/js/qrcode.js"></script>
+<script type="text/javascript" src="/js/sketch.js"></script>
+<style>
+    .ui-body {
+        padding: 0; 
+    } 
+
+    .ui-collapsible-inset {
+        padding: 0;
+    }
+
+    .thumbs {
+        display: inline;
+    }
+</style>
+<script>
+
+    var pageData = {
+        "session": {
+            "totalPage": '<%= req.session.sSlidesInfo.pages %>' == 'undefined' ? '0' : '<%= req.session.sSlidesInfo.pages %>',
+            "sessionId": '<%= req.session.sSessionId %>' == 'undefined' ? '0' : '<%= req.session.sSessionId %>',
+            "sessionName": '<%= req.session.sSessionName %>' == 'undefined' ? '0' : '<%= req.session.sSessionName %>',
+            "sessionKey": '<%= req.session.sKeyPhase %>' == 'undefined' ? '0' : '<%= req.session.sKeyPhase %>',
+            "role": '<%= req.session.sRole %>' == 'undefined' ? '0' : '<%= req.session.sRole %>',
+            "userId": '<%= req.session.sUserId %>' == 'undefined' ? '0' : '<%= req.session.sUserId %>',
+            "currentPage": 1,
+            "currentFileName": "",
+            "currentFileId": 0,
+            "currentFilePage": 1,
+            "currentParticipant": 0,
+            "maxParticipant": 0
+        },
+        "page": {
+            "id": [],
+            "image": []
+        },
+        "user": {
+            "id": '<%= req.session.sUserId %>' == 'undefined' ? '0' : '<%= req.session.sUserId %>',
+            "preference": {}
+        },
+        "quiz": "",
+        "evaluation": ""
+    };
+
+    <% for (var i=0; i < req.session.sSlidesInfo.pages; i++) { %>
+        pageData.page.image[<%= i %>]="http://<%= req.session.sSlidesInfo.files[i] %>";
+    <%	} %>
+
+    <% 	for (var i = 0; i < req.session.sSlidesInfo.pages ; i ++) { %>
+        pageData.page.id.push("<%= req.session.sSlidesInfo.pngId[i] %>")
+    <% } %>
+
+    $.ajax({
+		type: "GET",
+		url: "quiz/list",
+		dataType: "json",
+		cache: false,
+		data: {"sessionId": pageData.session.sessionId},
+		success: function(response) {
+            pageData.quiz = response;
+            console.log(pageData);
+            scripts.fetch();
+        }
+    });    
+
+    //-------------------------------------------
+    // Load .js below
+    //-------------------------------------------
+    
+    function getScripts( scripts, onScript, onComplete ) {
+        this.async = true;
+        this.cache = false;
+        this.data = null;
+        this.complete = function () { $.scriptHandler.loaded(); };
+        this.scripts = scripts;
+        this.onScript = onScript;
+        this.onComplete = onComplete;
+        this.total = scripts.length;
+        this.progress = 0;
+    };
+
+    getScripts.prototype.fetch = function() {
+        $.scriptHandler = this;
+        var src = this.scripts[ this.progress ];
+        console.log('%cFetching %s','color:#ffbc2e;', src);
+
+        $.ajax({
+            crossDomain:true,
+            async:this.async,
+            cache:this.cache,
+            type:'GET',
+            url: src,
+            data:this.data,
+            statusCode: {
+                200: this.complete
+            },
+            dataType:'script'
+        });
+    };
+
+    getScripts.prototype.loaded = function () {
+        this.progress++;
+        if( this.progress >= this.total ) {
+            if(this.onComplete) this.onComplete();
+        } else {
+            this.fetch();
+        };
+        if(this.onScript) this.onScript();
+    };
+    
+    var scripts = new getScripts(
+        ["/js/mobileCommonSettings.js", "/js/hostScreenmSettings.js"],
+        function() {
+            /* Optional - Executed each time a script has loaded (Use for Progress updates?) */
+        },
+        function () {
+            /* Optional - Executed when the entire list of scripts has been loaded */
+        }
+    );
+
+jQuery(document).ready(function ($) {
+    $.ajaxSetup({cache: false});
+	var button = $("#startRecord");
+    var thumbup1 = $("#thumbup1");
+    var thumbdown1 = $("#thumbdown1");
+    var sessionId = '<%= req.session.sSessionId %>',
+        sessionKey = '<%= req.session.sKeyPhase %>',
+		userId = '<%= req.session.sUserId %>';
+	
+	$(".slideImg").remove();
+		
+    $("#startRecord").click(function () {
+        $("#startRecord").css("background-color", "Black");
+        $("#stopRecord").css("background-color", "White");
+		socket.post('/socket/broadcast', {'event':'startStreaming', 'data':{}}, function(response) {console.log(response);});
+    });
+
+    $("#stopRecord").click(function () {
+        $("#stopRecord").css("background-color", "Black");
+        $("#startRecord").css("background-color", "White");
+		socket.post('/socket/broadcast', {'event':'stopStreaming', 'data':{}}, function(response) {console.log(response);});
+    });
+
+    $("#stopQuiz").click(function () {
+		if (confirm("End Quiz?")) {
+			for (var i = 0; i < quizCurrent.length; i++) {
+				if (quizCurrent[i]){
+					$.ajax({
+						type: "POST",
+						url: "quiz/stop",
+						dataType: "json",
+						data: {"quizId": quizCurrent[i]},
+						success: function(response) {
+							
+						}
+					});					
+				}
+			}
+			quizCurrent = [];
+			$("#stopQuiz").hide();
+		} else {
+		
+		}
+    });
+    //-------------------------------------------
+    // Slider settings below
+    //-------------------------------------------
+
+    var options = {
+        $FillMode: 2,                                       //[Optional] The way to fill image in slide, 0 stretch, 1 contain (keep aspect ratio and put all inside slide), 2 cover (keep aspect ratio and cover whole slide), 4 actuall size, default value is 0
+        $ArrowKeyNavigation: true,   			            //[Optional] Allows keyboard (arrow key) navigation or not, default value is false
+		$LazyLoading:	 0,
+        $Loop: 0,
+		$HWA: false,
+		$AutoPlay: false,
+
+        $BulletNavigatorOptions: {                                //[Optional] Options to specify and enable navigator or not
+            $Class: $JssorBulletNavigator$,                       //[Required] Class to create navigator instance
+            $ChanceToShow: 2,                               //[Required] 0 Never, 1 Mouse Over, 2 Always
+            $Lanes: <%= Math.ceil(req.session.sSlidesInfo.files.length / 35) %>                                     //[Optional] Specify lanes to arrange items, default value is 1
+        },
+
+        $ArrowNavigatorOptions: {                       //[Optional] Options to specify and enable arrow navigator or not
+            $Class: $JssorArrowNavigator$,              //[Requried] Class to create arrow navigator instance
+            $ChanceToShow: 2                            //[Required] 0 Never, 1 Mouse Over, 2 Always
+        }
+    };
+
+    var jssor_slider1 = new $JssorSlider$("slider1_container", options);
+    window.jssor_slider1 = jssor_slider1;
+    var headerHeight = 0;
+    var centerWidth = jssor_slider1.$Elmt.parentNode.clientWidth;
+	var centerHeight = jssor_slider1.$Elmt.parentNode.clientHeight;
+    //responsive code begin
+    //you can remove responsive code if you don't want the slider scales while window resizes
+	function ScaleSlider() {
+		centerWidth = $(window).width();
+		centerHeight = $(window).height();
+		var originalWidth = jssor_slider1.$GetOriginalWidth();
+		var originalHeight = jssor_slider1.$GetOriginalHeight();
+		var scaleWidth;
+		var scaleWidth2;
+		var scaleWidthPreNext;
+		
+		
+		var imgWidth = $(".slideImg").width();
+		var imgHeight = $(".slideImg").height();
+		var sliderWidth = $(".slideImgArea").width();
+		var sliderHeight = $(".slideImgArea").height();		
+		
+		if (centerWidth > centerHeight) {
+			scaleWidth = Math.ceil(centerHeight / originalHeight * originalWidth);
+		} else {
+			scaleWidth = centerWidth
+		}
+		scaleWidth2 = scaleWidth * 0.85;
+		scaleWidthPreNext = centerWidth*0.49;
+		jssor_slider1.$SetScaleWidth(scaleWidth);
+
+		$("#slidePreNext").css({"text-align": "center"});
+		$("#slidePrePage img").attr("width", scaleWidthPreNext * 0.9);
+		$("#slideNextPage img").attr("width", scaleWidthPreNext * 0.9);	
+		
+		if (imgWidth/imgHeight < sliderWidth/sliderHeight) {
+			imgWidth = imgWidth*(sliderHeight/imgHeight);
+			imgHeight = sliderHeight;			
+		} else if (imgWidth/imgHeight > sliderWidth/sliderHeight) {
+			imgHeight = imgHeight * (sliderWidth/imgWidth);
+			imgWidth = sliderWidth;		
+		} else {
+			imgHeight = sliderHeight;
+			imgWidth = sliderWidth;		
+		}
+		$(".slideImg").css({
+			top:0,
+			left:(sliderWidth - imgWidth)/2, 
+			align:"center"
+		});
+		$(".slideImg").width(imgWidth);
+		$(".slideImg").height(imgHeight);  	
+    }
+	
+    setTimeout(function(){ScaleSlider()},1000);
+	
+    if (!navigator.userAgent.match(/(iPhone|iPod|iPad|BlackBerry|IEMobile)/)) {
+        $(window).bind('resize', ScaleSlider);
+    }
+    else {
+        $(window).bind("orientationchange", ScaleSlider);
+    }
+	
+	$(window).on("orientationchange",function(event){
+		ScaleSlider();
+	});
+	
+    //-------------------------------------------
+    // FeedBack settings below
+    //-------------------------------------------
+
+    $("#thumbdown1").hide();
+    $("#thumbdown2").hide();
+	
+    //-------------------------------------------
+    // Comments & Questions settings below
+    //-------------------------------------------
+
+	var headTop;
+	$.mobile.window.on( "scroll", function( e ) {
+		headTop = $(window).scrollTop();
+	});  
+    
+	$("#commentIcon").click(function(){
+		var scrollD;
+		if (headTop < $("#commentArea").position().top) {
+			scrollD = $("#commentArea").position().top -  headTop;		
+		} else {
+			scrollD = 0;
+		}
+		$.mobile.silentScroll(scrollD);
+		$( "#commentArea" ).collapsible( "expand" );
+	});
+
+    //-------------------------------------------
+    // Quiz settings below
+    //-------------------------------------------
+    var quiz = '';
+    var quizId = Array();
+    var quizCurrent = Array();
+    var quizOptions = {};
+
+	$("#quizIcon").click(function(){
+		var scrollD;
+		if (headTop < $("#quizArea").position().top) {
+			scrollD = $("#quizArea").position().top -  headTop;		
+		} else {
+			scrollD = 0;
+		}
+		$.mobile.silentScroll(scrollD);
+		$( "#quizArea" ).collapsible( "expand" );
+	});	
+
+	function waitForList() {
+		if (!pageData.session.currentFileId || !pageData.session.currentFilePage ) {
+			setTimeout(waitForList,100);
+		} else {	
+			$.getJSON("quiz/list" ,{}, function(res) {
+				quiz = res;
+				for (var i = 0; i < res.length; i ++) {
+					var quizQuestion = JSON.parse(res[i].question);
+					var m = i + 1;
+					quizId[i] = "quiz" + res[i].id;
+					quizOptions[res[i].id] = res[i];
+					if (res[i].options === 0) {
+						quizShortAnswer({'class':"", 'id': res[i].id, 'i':i, 'page': res[i].page , 'question': quizQuestion.question, 'keyword': res[i].keyword});
+						quizButtonSet({'class':"", 'id': res[i].id, 'i':i, 'page': res[i].page , 'question': quizQuestion.question, 'keyword': res[i].keyword});
+					} else {
+						quizMultipleChoice({'class':"", 'id': res[i].id, 'i':i, 'page': res[i].page , 'question': quizQuestion.question, 'options':quizQuestion.options, 'keyword': res[i].keyword});
+						quizButtonSet({'class':"", 'id': res[i].id, 'i':i, 'page': res[i].page , 'question': quizQuestion.question, 'options':quizQuestion.options, 'keyword': res[i].keyword});
+					}
+					$("#Quiz" + "").collapsibleset().trigger('create');
+					if (res[i].page === 0 || res[i].page === 1) {
+						$("#quiz" + res[i].id).show();
+					} else {
+						$("#quiz" + res[i].id).hide();
+					}			
+				}
+			});	
+		}
+	}
+	waitForList();
+	
+	function waitForQuiz() {
+		if (!quiz) {
+			setTimeout(waitForQuiz,100);
+		} else {
+			for (var i = 0; i < quiz.length; i++) {
+				$("#Quiz").children().collapsible("collapse");
+				if (quiz[i].page == pageData.session.currentFilePage && quiz[i].fileId == pageData.session.currentFileId) {
+					$("#" + quizId[i]).show();
+				} else if (quiz[i].fileId == 0 && quiz[i].page != 9999){
+					$("#" + quizId[i]).show();
+				} else if (quiz[i].fileId == pageData.session.currentFileId && quiz[i].page == 0) {
+					$("#" + quizId[i]).show();
+				} else if (quiz[i].page == 9999 && currentPage == pageData.session.totalPage) {
+					$("#" + quizId[i]).show();
+				} else {
+					$("#" + quizId[i]).hide();
+				}
+                
+                
+                if (pageData.quiz[i].page === 0 && (pageData.quiz[i].fileId === 0 || pageData.quiz[i].fileId === pageData.session.currentFileId)) {
+                    $("#quiz" + pageData.quiz[i].id).show();			
+                }  else {
+                    $("#quiz" + pageData.quiz[i].id).hide();
+                }                
+			}
+		}
+	}  
+	
+	function quizShortAnswer(obj){
+		$("#Quiz" + obj.class).append("<div data-role=\"collapsible\" id=\"quizQuestion" + obj.class + obj.id + "\"></div>");
+		if (obj.page === 0) {
+			$("#quizQuestion" + obj.class + obj.id).append("<h3 id=\"quiz" + obj.class + obj.id + "\">Default Question <b>KeyWord:</b> " + obj.keyword + "</h3>");
+		} else {
+			$("#quizQuestion" + obj.class + obj.id).append("<h3 id=\"quiz" + obj.class + obj.id + "\">Question for page " + obj.page + "   <b>KeyWord:</b> " + obj.keyword + "</h3>");
+		}
+		$("#quizQuestion" + obj.class + obj.id).append("<p>" + obj.question + "</p>")
+		$("#quizQuestion" + obj.class + obj.id).append("<label>Answers: </label>");
+		$("#quizQuestion" + obj.class + obj.id).append("<div class=\"tagCloud\" id=\"tagCloud" + obj.class + obj.id + "\"></div>");
+		$("#tagCloud" + obj.class + obj.id).append("<ul class=\"tagList\" id=\"tagList" + obj.class + obj.id + "\"></ul>");
+		$("#quizQuestion" + obj.class + obj.id).append("<div id=\"answers" + obj.class + obj.id + "\"></div>");
+        $("#quizQuestion" + obj.class + obj.id).append("<button class=\"ui-btn ui-btn-inline ui-mini ui-corner-all ui-btn-icon-right ui-icon-arrow-r\" style=\"position:relative;left:0px;\" id=\"quizQuestionButton" + obj.class + obj.id + "\">Push Out</button>");
+        $("#quizQuestion" + obj.class + obj.id).append("<button class=\"ui-btn ui-btn-inline ui-mini ui-corner-all ui-btn-icon-right ui-icon-action intoPopUp\" style=\"position:absolute;right:0px;\" id=\"quizQuestionButton" + obj.class + obj.id + "P\">Display</button>");	
+	}             
+	
+	function quizMultipleChoice(obj){
+		$("#Quiz" + obj.class).append("<div data-role=\"collapsible\" id=\"quizQuestion" + obj.class + obj.id + "\"></div>");
+		if (obj.page === 0) {
+			$("#quizQuestion" + obj.class + obj.id).append("<h3 id=\"quiz" + obj.class + obj.id + "\">Default Question <b>KeyWord:</b> " + obj.keyword + "</h3>");
+		} else {
+			$("#quizQuestion" + obj.class + obj.id).append("<h3 id=\"quiz" + obj.class + obj.id + "\">Question for page " + obj.page + "   <b>KeyWord:</b> " + obj.keyword + "</h3>");
+		}
+		$("#quizQuestion" + obj.class + obj.id).append("<p>" + obj.question + "</p>");
+		quizOptions[obj.id]["optionNames"] = [];
+		for (var n = 0; n < obj.options.length; n++) {
+			$("#quizQuestion" + obj.class + obj.id).append("<input type=\"checkbox\" id=\"quiz" + obj.class + obj.id + "Checkbox" + n + "\">" + "<label for=\"quiz" + obj.class + obj.id + "Checkbox" + n + "\">" + obj.options[n] + "</label>");
+			quizOptions[obj.id]["optionNames"][n] = obj.options[n];
+			quizOptions[obj.id][obj.options[n]] = 0;
+		}
+		$("#quizQuestion" + obj.class + obj.id).append("<label>Answers: </label>");
+		for (var ii = 0; ii < quizOptions[obj.id].options; ii++) {
+			$("#quizQuestion" + obj.class + obj.id).append("<label id=\"quiz" + obj.class + obj.id + "Label" + (ii + 1) + "\">Option" + (ii + 1) + ": " + quizOptions[obj.id][obj.options[ii]] + "</label>");
+		}		
+        $("#quizQuestion" + obj.class + obj.id).append("<button class=\"ui-btn ui-btn-inline ui-mini ui-corner-all ui-btn-icon-right ui-icon-arrow-r\" style=\"position:relative;left:0px;\" id=\"quizQuestionButton" + obj.class + obj.id + "\">Push Out</button>");
+        $("#quizQuestion" + obj.class + obj.id).append("<button class=\"ui-btn ui-btn-inline ui-mini ui-corner-all ui-btn-icon-right ui-icon-action intoPopUp\" style=\"position:absolute;right:0px;\" id=\"quizQuestionButton" + obj.class + obj.id + "P\">Display</button>");
+	}
+
+	function quizButtonSet(obj){
+		$("#quizQuestion" + obj.class + obj.id).collapsible({
+			expand:function(){
+				socket.post('/socket/broadcast', {'event':'quizExpand', 'data':{'id':obj.id,'class':""}}, function(response) {console.log(response);});
+			}
+		});
+		$("#quizQuestionButton" + obj.class + obj.id)
+				.click({'id':obj.id,'num': obj.i, 'class': ""}, function(res){
+					var quizStopTimer = 0;
+					 quizCurrent[res.data.id] = res.data.id;
+					 $.ajax({
+						type: "POST",
+						url: "quiz/start",
+						dataType: "json",
+						data: {"quizId": res.data.id, "timer": quizStopTimer},
+						success: function(response) {
+							alert("Quiz Start!");
+							socket.post('/socket/broadcast', {'event':'startQuizforHost', 'data':{'id':res.data.id}}, function(response) {console.log(response);});	
+						}
+					});
+					$("#stopQuiz").show();
+				});
+
+		$("#quizQuestionButton" + obj.class + obj.id + "P")
+				.click({'id':obj.id,'num': obj.i, 'class': ""}, function(res){
+					if ($("#quizQuestionButton" + obj.class + obj.id + "P").text() == "Display") {
+						socket.post('/socket/broadcast', {'event':'quizDialog', 'data':{'id':res.data.id,'class':"", "OrC":$("#quizQuestionButton" + obj.class + obj.id + "P").text()}}, function(response) {console.log(response);});
+						$(".intoPopUp").text("Hide");
+					} else {
+						socket.post('/socket/broadcast', {'event':'quizDialog', 'data':{'id':res.data.id,'class':"", "OrC":$("#quizQuestionButton" + obj.class + obj.id + "P").text()}}, function(response) {console.log(response);});
+						$(".intoPopUp").text("Display");
+					}
+				});
+	}
+	
+	socket.on('stopQuizforHost', function(){
+		$("#stopQuiz").hide();
+	});
+	
+	socket.on('startQuizforHost', function(res){
+		quizCurrent[res.data.id] = res.data.id;
+		$("#stopQuiz").show();
+	});
+	
+	socket.on('quizEdit', function(response){
+		$.ajax({
+			type:"GET",
+			url: "quiz/find",
+			dataType: "json",
+			cache: false,
+			data: {"quizId": response.data.quizId},
+			success: function(res) {
+				quiz.push(res);
+				$("#quizQuestion" + res.id).remove();
+				$("#quiz" + res.id).remove();
+				var quizQuestion = JSON.parse(res.question);
+				quizId.push("quiz" +  res.id);
+				quizOptions[res.id] = res;
+				if (res.options === 0) {
+					quizShortAnswer({'class':"", 'id': res.id, 'i':0, 'page': res.page , 'question': quizQuestion.question, 'options': 0, 'keyword': res.keyword, 'fileId': res.fileId});
+					quizButtonSet({'class':"", 'id': res.id, 'i':0, 'page': res.page , 'question': quizQuestion.question, 'options': 0, 'keyword': res.keyword, 'fileId': res.fileId});
+				} else {
+					quizMultipleChoice({'class':"", 'id': res.id, 'i':0, 'page': res.page , 'question': quizQuestion.question, 'options':quizQuestion.options, 'keyword': res.keyword, 'fileId': res.fileId});
+					quizButtonSet({'class':"", 'id': res.id, 'i':0, 'page': res.page , 'question': quizQuestion.question, 'options':quizQuestion.options, 'keyword': res.keyword, 'fileId': res.fileId});
+				}
+				$("#Quiz" + "").collapsibleset().trigger('create');
+				if (res.page == pageData.session.currentFilePage && res.fileId == pageData.session.currentFileId) {
+					$("#quiz" + res.id).show();
+				} else if (res.fileId == 0) {
+					$("#quiz" + res.id).show();
+				} else if (res.fileId == pageData.session.currentFileId && res.page == 0) {
+					$("#quiz" + res.id).show();
+				} else {
+					$("#quiz" + res.id).hide();
+				}
+			}
+		});	
+	});
+	
+	socket.on('quizDelete', function(res){
+		$("#quizQuestion" + res.data.quizId).remove();
+		$("#quiz" + res.data.quizId).remove();		
+	});
+	
+    //-------------------------------------------
+    // socket settings below
+    //-------------------------------------------
+
+    // create or join socket room
+	socket.on('disconnect', function(){
+		socket.post('/socket/join', function(response) {
+		});		
+	});    
+	
+	socket.post('/socket/join', function(response) {
+		pageData.session.currentParticipant = response.participantNumber;
+    });
+	
+	socket.on('participantNumber', function(response){
+		pageData.session.currentParticipant = response;
+	});
+	
+    var control = true,
+            _page = 0,
+            _isRecording = false;
+
+    var currentPage = 1;
+    socket.get('/socket/getcurrentpage', function (response) {
+        currentPage = response.page + 1;
+		if (jssor_slider1.$SlidesCount() == 1) {
+			jssor_slider1.$TriggerEvent($JssorSlider$.$EVT_PARK, 0, 0); 
+		} else {
+			jssor_slider1.$GoTo(response.page);
+		}
+    });
+	
+	var previousSlidePage = 0;
+    jssor_slider1.$On($JssorSlider$.$EVT_PARK, function (slideIndex, fromIndex) {
+		$("div[u='loading']").hide();
+		if (slideIndex == 0) {
+			$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			$("#slidePrePage img").attr("src", pageData.page.image[slideIndex]);
+			$("#slideNextPage img").attr("src", pageData.page.image[slideIndex + 1]);
+			previousSlidePage = slideIndex;	
+		} else {
+			if (Math.abs(slideIndex - previousSlidePage) > 2) {
+				$("#slideImg" + (previousSlidePage - 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + previousSlidePage).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage + 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage - 1)).remove();
+				$("#slideImg" + previousSlidePage).remove();
+				$("#slideImg" + (previousSlidePage + 1)).remove();
+				$(".slideImgArea[debug-id='slide-" + (slideIndex - 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex - 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex - 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			} else if (slideIndex - previousSlidePage == 2) {
+				$("#slideImg" + (previousSlidePage - 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + previousSlidePage).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage - 1)).remove();
+				$("#slideImg" + previousSlidePage).remove();				
+				$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+			} else if (slideIndex - previousSlidePage == -2) {
+				$("#slideImg" + previousSlidePage).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage + 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage)).remove();
+				$("#slideImg" + previousSlidePage + 1).remove();				
+				$(".slideImgArea[debug-id='slide-" + (slideIndex - 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex - 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex - 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");
+				$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");				
+			} else if (slideIndex - previousSlidePage == 1) {
+				$("#slideImg" + (previousSlidePage - 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage - 1)).remove();					
+				if (slideIndex == 1) {
+					$(".slideImgArea[debug-id='slide-" + slideIndex +"']").append("<img class=\"slideImg\" id=\"slideImg" + slideIndex + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");				
+				}
+				$(".slideImgArea[debug-id='slide-" + (slideIndex + 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex + 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex + 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");			
+			} else if (slideIndex - previousSlidePage == -1) {
+				$("#slideImg" + (previousSlidePage + 1)).attr("src", "/js/img/loading.gif");
+				$("#slideImg" + (previousSlidePage + 1)).remove();		
+				$(".slideImgArea[debug-id='slide-" + (slideIndex - 1) +"']").append("<img class=\"slideImg\" id=\"slideImg" + (slideIndex - 1) + "\" u=\"image\" src=\"" + pageData.page.image[slideIndex - 1] + "\" border=\"0\" style=\"width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;\"/>");				
+			}
+			previousSlidePage = slideIndex;
+			$("#slidePrePage img").attr("src", pageData.page.image[slideIndex - 1]);
+			$("#slideNextPage img").attr("src", pageData.page.image[slideIndex + 1]);			
+		}
+		ScaleSlider();
+		
+		currentPage = slideIndex + 1;
+        $("#thumbdown1").hide();
+        $("#thumbdown2").hide();
+        $("#thumbup1").show();
+        $("#thumbup2").show();
+        $(".comment").hide();
+		pageData.session.currentPage = slideIndex + 1;
+		pageData.session.currentFileName = pageData.session.slides[slideIndex].name;
+		pageData.session.currentFileId = pageData.session.slides[slideIndex].fileId;
+		pageData.session.currentFilePage = pageData.session.slides[slideIndex].page + 1;
+        $.ajax({
+            type: "GET",
+            url: "comment/find",
+            dataType: "json",
+            data: {"sessionId": sessionId, "page": currentPage},
+            success: function (response) {
+			//	$("#commentIcon").hide();
+				if (response.length > 0) {
+			//		$("#commentIcon").show();
+					if (window.navigator && window.navigator.vibrate) {
+					   navigator.vibrate([500]);
+					} else {
+					
+					}		
+				}
+				if ($(".comment" + currentPage).length) {
+					$(".comment" + currentPage).show();
+				} else {
+					for (var i = 0; i < response.length; i++) {
+						var li = $("<li class=\"comment comment" + response[i].page + "\">");
+						$("<a href=\"#\">").text(response[i].content).appendTo(li);
+						li.appendTo("#commentArea1");
+						li.click(function(){
+							if (OrC == 0) {
+								socket.post('/socket/broadcast', {'event':'commentDialog', 'data':{"content":$(this).text(), "OrC": OrC}}, function(response) {console.log(response);});
+							} else {
+								socket.post('/socket/broadcast', {'event':'commentDialog', 'data':{"content":$(this).text(), "OrC": OrC}}, function(response) {console.log(response);});
+							}		
+						});  
+					} 				
+				}
+            }
+        });
+        $("#comment" + currentPage).show();
+        if (control) {
+            socket.post('/socket/changepage', {'event': 'pageSynchronise', 'page': slideIndex}, function (response) {
+                console.log(response);
+            });
+        } else {
+            control = true;
+        }
+	
+		waitForQuiz();
+		slidenote();
+		$("#fileList").val(pageData.session.slides[slideIndex].startPage).selectmenu("refresh");		
+
+        _page = slideIndex;
+        if (_isRecording) {
+            mediaRecorder.stop();
+
+            var data = {
+                'timestamp': Date.now() - startTime,
+                'page': _page
+            };
+
+            _newMediaRecorder(recordingStream, data);
+            mediaRecorder.start(1000);
+        }
+		
+	//	slideTag();
+    });
+
+    socket.on('pageSynchronise', function (res) {
+        console.log('synchronise page to page ' + res.page);
+        jssor_slider1.$GoTo(res.page);
+        control = false;
+    });
+
+    socket.on('quizSubmit', function (res) {
+        console.log('Quiz answer submited' + res.quizId);
+        if (quizOptions[res.quizId].options === 0) {
+            console.log($("#tagList" + res.quizId));
+            $("#tagCloud" + res.quizId).append("<ul class=\"tagList\" id=\"tagList" + res.quizId + "\"></ul>");
+            $.getJSON("quiz/gettags", {"quizId": res.quizId}, function (data) {
+                $("#tagList" + res.quizId).empty();
+                $("#tagList" + res.quizId).remove();
+                $.each(data.tags, function (i, val) {
+                    var li = $("<li>");
+                    $("<a>").text(val.tag).appendTo(li);
+                    //add to list
+                    li.appendTo("#tagList" + res.quizId);
+                    li.children().css("fontSize", (val.freq / 10 < 1) ? val.freq / 10 + 1 + "em" : (val.freq / 10 > 2) ? "2em" : val.freq / 10 + "em");
+                });
+            });
+            $("#answers" + res.quizId).append("<p>" + res.answer + "</p>");
+        } else {
+            quizOptions[res.quizId][res.answer] += 1;
+            for (var i = 0; i < quizOptions[res.quizId].options; i++) {
+                if (quizOptions[res.quizId]["optionNames"][i] == res.answer) {
+                    $("#quiz" + res.quizId + "Label" + (i + 1)).text("Option" + (i + 1) + ": " + quizOptions[res.quizId][res.answer]);
+                }
+            }
+        }
+        $("#Quiz").collapsibleset().trigger('create');
+    });
+	
+	var isPopUpAlarmOpen = false;
+	var popUpAlarmOpenTimeoutId;
+    socket.on('feedbackReceive', function (res) {
+        console.log('FeedBack submited for page: ' + currentPage);	
+        if (res.percentage > 0.1) {     
+			clearTimeout(popUpAlarmOpenTimeoutId);
+			if (res.feedbackOptionId == "1") {
+				if ($("#popupBasicUnder").length) {
+					if (!isPopUpAlarmOpen) {
+						$("#popupBasic").popup("open");
+						isPopUpAlarmOpen = true;
+						if (window.navigator && window.navigator.vibrate) {
+						   navigator.vibrate([500,500,500]);
+						} else {
+						
+						}						
+					}
+				} else {
+					$("#popupBasic").append("<p id=\"popupBasicUnder\">The Content is Hard to Understand!</p>");
+					if (!isPopUpAlarmOpen) {
+						$("#popupBasic").popup("open");
+						isPopUpAlarmOpen = true;
+						if (window.navigator && window.navigator.vibrate) {
+						   navigator.vibrate([500,500,500]);
+						} else {
+						
+						}						
+					}
+				}
+				$("#thumbup1").hide();
+                $("#thumbdown1").show();
+            } else {
+				if ($("#popupBasicSpeed").length) {
+					if (!isPopUpAlarmOpen) {
+						$("#popupBasic").popup("open");
+						isPopUpAlarmOpen = true;
+						if (window.navigator && window.navigator.vibrate) {
+						   navigator.vibrate([500,500,500]);
+						} else {
+						
+						}
+					}
+				} else {
+					$("#popupBasic").append("<p id=\"popupBasicSpeed\">The Speed is Too Fast!</p>");
+					if (!isPopUpAlarmOpen) {
+						$("#popupBasic").popup("open");
+						isPopUpAlarmOpen = true;
+						if (window.navigator && window.navigator.vibrate) {
+						   navigator.vibrate([500,500,500]);
+						} else {
+						
+						}
+					}					
+				}
+                $("#thumbup2").hide();
+                $("#thumbdown2").show();
+            }
+			popUpAlarmOpenTimeoutId = setTimeout(function(){
+				$("#popupBasic").popup("close");
+			},10000);
+        } else {
+
+        }
+    });
+	
+	$("#popupBasic").popup({
+		afterclose: function() {
+			isPopUpAlarmOpen = false;
+			$("#popupBasic").empty();
+		}
+	});
+
+    socket.on('commentReceive', function (res) {
+        console.log('Comments submited for page: ' + currentPage);
+		if ($('.comment' + res.page).length == 0) {
+			if (window.navigator && window.navigator.vibrate) {
+			   navigator.vibrate([500]);
+			} else {
+			
+			}		
+		}
+		var li = $("<li class=\"comment comment" + res.page + "\">");
+		$("<a href=\"#\">").text(res.content).appendTo(li);
+		li.appendTo("#commentArea1");
+		var OrC = 0;
+		li.click(function(){
+			if (OrC == 0) {
+				socket.post('/socket/broadcast', {'event':'commentDialog', 'data':{"content":res.content, "OrC": OrC}}, function(response) {console.log(response);});
+				OrC = 1;
+			} else {
+				socket.post('/socket/broadcast', {'event':'commentDialog', 'data':{"content":res.content, "OrC": OrC}}, function(response) {console.log(response);});
+				OrC = 0;
+			}		
+		});
+	//	$("#commentIcon").show();
+    });
+	
+	socket.on('sessionEnd', function (res) {
+		socket.removeAllListeners('disconnect');
+		$.ajax({
+			type: "POST",
+			url: "statistic/save",
+			dataType: "json",
+			data:{"stat": {"recordingTime": $('#timer').text()}},			
+			cache: false,
+			success: function(response) {
+				$.ajax({
+					type: "GET",
+					url: "/logout",
+					cache: false,
+					success: function(response) {
+					//	alert("This session has been ended!");
+						window.location.href = '/login';
+					}
+				});	
+			}
+		});	   
+	
+	});
+	
+	var OrC = 0;
+	socket.on('commentDialogReturn', function (res){
+		OrC = res.data.OrC;
+	});
+
+    //-------------------------------------------
+    // Slide-notes settings below
+    //-------------------------------------------	
+
+	function slidenote(){
+		$("#popupPPTNoteText").empty();
+		$.ajax({
+			type: "GET",
+			url: "note/slidenotes",
+			dataType: "json",
+			data:{"fileId": pageData.session.currentFileId, "page": pageData.session.currentFilePage},
+			success: function(response) {
+				var p = $("<p></p>");
+				var slideNoteRes = response.content.replace(/\^\^/g, "<br>");
+				p.append("<span>" + slideNoteRes + "</span>");
+				p.appendTo("#popupPPTNoteText");
+			}
+		});
+	}	
+	
+    //-------------------------------------------
+    // Multiple-files settings below
+    //-------------------------------------------
+
+	$("#fileList")
+		.change(function(){
+			if (isNaN($("#fileList").val())) {
+				socket.post('/socket/broadcast', {'event':'openUrl', 'data':{"location": $("#fileList").val()}}, function(response) {console.log(response);});
+			} else {
+				jssor_slider1.$GoTo($("#fileList").val());
+			}
+		});  
+	
+	$.ajax({
+		type: "GET",
+		url: "session/getuploadedfiles",
+		dataType: "json",
+		data: {"sessionId": sessionId},
+		success: function(response) {
+			pageData.file = response;
+			var filepage = 0,
+				slides = [];
+			for (var i = 0; i < response.length; i++) {
+				if (response[i].type == "pdf") {
+					var option = $("<option class=\"file_list\" value=\"" + filepage + "\">");
+					for (var n = filepage; n < filepage + response[i].size; n++) {
+						slides[n] = {"name":response[i].name, "page":n - filepage, "fileId": response[i].id, "startPage": filepage};
+					}
+					$("<a>").text(response[i].name + ": Page " + (filepage+1) + " - " + (filepage+response[i].size)).appendTo(option);
+					option.appendTo("#fileList");
+					filepage += response[i].size;
+				} else if (response[i].type == "url"){
+					var option = $("<option class=\"file_list\" value=\"" + response[i].location + "\">");
+					$("<a>").text(response[i].name).appendTo(option);
+					option.appendTo("#fileList");
+				} else {
+					
+				}
+			} 
+			pageData.session.slides = slides;
+		}
+	});
+	
+    //-------------------------------------------
+    // recording settings below
+    //-------------------------------------------
+
+    var mediaRecorder = null,
+        startTime = null,
+        recordingStream = null,
+		start = 0,
+		pause = 0,
+		pauseTime = 0;
+
+//    navigator.getUserMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+    navigator.getUserMedia = navigator.mozGetUserMedia;
+
+    if (navigator.getUserMedia) {
+        navigator.getUserMedia({audio: true}, onMediaSuccess, onMediaError);
+    }
+
+    $("#controlItemRecording").click(function () {
+        if (_isRecording == false) {
+            if (start == 0) { start = new Date}
+            if (pause == 0) { pause = new Date}
+            pauseTime += (new Date) - pause;
+            if (navigator.getUserMedia) {
+                if (!startTime) startTime = Date.now();
+
+                _isRecording = true;
+                
+                var data = {
+                    'timestamp': Date.now() - startTime,
+                    'page': _page
+                };
+                
+                socket.post('/socket/startrecord', function(response) {
+
+                });			
+
+                _newMediaRecorder(recordingStream, data);
+                mediaRecorder.start(1000);
+            } else {
+                alert("Sorry, your browser is not supported. Please use Firefox.");
+            }
+        } else {
+            _isRecording = false;
+            mediaRecorder.stop();
+            seconds = $('#timer').find('.values').text();
+            minutes = $('#timer').find('.valuem').text();
+            hours = $('#timer').find('.valueh').text();
+            pause = new Date;
+            pauseTime += (new Date) - pause;
+
+            socket.post('/socket/stoprecord', function(response) {
+
+            });
+            
+            socket.post('/socket/broadcast', {'event':'stopRecording', 'data':{}}, function(response) {console.log(response);});
+        }
+    });
+
+    function onMediaError(e)
+    {
+
+    }
+    function onMediaSuccess(stream)
+    {
+        recordingStream = stream;
+    }
+
+    function _newMediaRecorder(stream, data) {
+        mediaRecorder = new MediaRecorder(stream);
+        //var mediaRecorder = new MediaStreamRecorder(stream);
+        mediaRecorder.mimeType = 'audio/ogg';
+        mediaRecorder.ondataavailable = function (blob) {
+            //combine the blob data and write to disk
+            var encodeData = new Blob([blob.data], {type: 'audio/ogg'});
+            var audioReader = new FileReader();
+
+            audioReader.onload = function(e) {
+                var recordData = {
+                    'audio': {
+                        'timestamp': data.timestamp,
+                        'page': data.page,
+                        'type': 'audio/ogg',
+                        'dataURL': audioReader.result
+                    }
+                };
+                socket.post('/socket/record', recordData, function(response) {
+//					console.log(response);
+					$("#timer").show();
+					$("#timer").css({
+						zIndex:9999,
+						top:0,
+						left:0,
+						position: "absolute"
+					});
+					var time = new Date(response.time),
+						hour = Math.floor((time - start - pauseTime) / 3600000),
+						min = Math.floor((time - start - pauseTime) / 60000) - hour * 60,
+						sec = Math.floor((time - start - pauseTime) / 1000) - hour * 3600 - min * 60;
+					$('#timer').find('.values').text(sec < 10 ? "0" + sec : "" + sec);
+					$('#timer').find('.valuem').text(min < 10 ? "0" + min : "" + min);
+					$('#timer').find('.valueh').text(hour < 10 ? "0" + hour : "" + hour);
+				});
+            };
+
+            audioReader.readAsDataURL(encodeData);
+        };
+    }
+	
+	window.onbeforeunload = function(e) {
+        socket.post('/socket/stoprecord', function(response) {
+
+        });
+	};
+	
+    //-------------------------------------------
+    // Slide rating & tag settings below
+    //-------------------------------------------
+
+/*	function slideTag(){
+		$("#slideTag").text("0");
+		$.ajax({
+			type: "GET",
+			url: "filemodify/getrating",
+			dataType: "json",
+			cache: false,
+			data: {"fileId": pageData.page.id[currentPage - 1]},
+			success: function(response) {
+				if (response.data) {
+					$("#slideTag").text(response.data.tag);
+				}
+			}
+		});		
+	}
+	
+	socket.on('slideTagReceive', function(res){
+		$("#slideTag").text(res);
+	}); */
+	
+    //-------------------------------------------
+    // chat settings below
+    //-------------------------------------------	
+
+	socket.on('chatOpen', function(res) {
+		$('#chatDialog' ).popup('open');
+	});
+
+	$("#chatTextEnter").click(function(){
+		switch($("#chatGroupSelect").val()){
+			case "0":
+				socket.post('/socket/broadcast', {'event':'chatContentBroadcast', 'data':{"content": $("#chatTextarea").val(), "user": "Anonymous", "group": 0}}, function(response) {console.log(response);});
+				$("#chatTextarea").val("");
+				break;
+			case "1":
+				socket.post('/socket/broadcast', {'event':'chatContentBroadcast', 'data':{"content": $("#chatTextarea").val(), "user": "Anonymous", "group": 1}}, function(response) {console.log(response);});
+				$("#chatTextarea").val("");			
+				break;
+			case "2":
+				socket.post('/socket/broadcast', {'event':'chatContentBroadcast', 'data':{"content": $("#chatTextarea").val(), "user": "Anonymous", "group": 2}}, function(response) {console.log(response);});
+				$("#chatTextarea").val("");			
+				break;
+			case "3":
+				socket.post('/socket/broadcast', {'event':'chatContentBroadcast', 'data':{"content": $("#chatTextarea").val(), "user": "Anonymous", "group": 3}}, function(response) {console.log(response);});
+				$("#chatTextarea").val("");			
+				break;	
+			case "4":
+				socket.post('/socket/broadcast', {'event':'chatContentBroadcast', 'data':{"content": $("#chatTextarea").val(), "user": "Anonymous", "group": 4}}, function(response) {console.log(response);});
+				$("#chatTextarea").val("");			
+				break;					
+		}
+	});
+		
+	$("#chatNew").click(function(){
+		socket.post('/socket/broadcast', {'event':'chatNew', 'data':{}}, function(response) {console.log(response);});
+	});
+	
+	$("#chatSplit").click(function(){
+		socket.post('/socket/broadcast', {'event':'chatSplit', 'data':{'groupNumber': $("#chatGroupNumber").val()}}, function(response) {console.log(response);});
+	});	
+		
+});
+
+</script>
+<div data-role="page" id="page" >
+<div id="timer" style="display:none;color:red;font-weight:bold;font-size:150%;"><span class="valueh"></span> : <span class="valuem"></span> : <span class="values"></span></div>
+<div class="ui-corner-all custom-corners" id="powerPoint">
+    <div data-role="header" style="overflow: hidden;">
+        <div data-role="controlgroup" data-type="horizontal" class="ui-mini ui-btn-left" id="controlTools" style="width: 20000px;">
+            <a id="openCanvas" class="ui-btn ui-btn-icon-right ui-icon-plus">Annotation</a>
+        <!--    <a id="slideTagReminder" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Tag Slide</a>  -->
+            <a id="controlItemRecording" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Recording</a>
+			<a id="commentIcon" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Question</a>
+			<a id="quizIcon" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Quiz</a>
+            <a id="popupPPTNoteIcon" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">SpeakerNote</a>
+            <a id="openPointer" class="ui-btn ui-btn-icon-right ui-icon-arrow-d">Pointer</a>
+        </div>
+        <h6></h6>
+    </div>
+
+    <div class="ui-body ui-body-a">
+		<select id="fileList">
+
+		</select>
+        <div id="slider1_container" style="position: relative; top: 0px; margin-left:auto; margin-right:auto; width: 800px; height:600px;">
+            <!-- Loading Screen -->
+            <div u="loading" style="position: absolute; top: 0px; left: 0px;">
+                <div style="filter: alpha(opacity=70); opacity:0.7; position: absolute; display: block;
+						background-color: #000000; top: 0px; left: 0px;width: 100%;height:100%;">
+                </div>
+                <div style="position: absolute; display: block; background: url(/js/img/loading.gif) no-repeat center center;
+						top: 0px; left: 0px;width: 100%;height:100%;">
+                </div>
+            </div>
+
+            <!-- Slides Container -->
+            <div u="slides" style="cursor: move; position: relative; left: 0px; top: 0px; width: 800px; height: 600px;
+					overflow: hidden;">
+                <% for (var i = 0; i < req.session.sSlidesInfo.pages ; i++) { %>
+                <div class="slideImgArea"><img class="slideImg" id="slideImg<%=i%>" u="image"
+						  src="/js/img/loading.gif" 
+                          border="0"
+                          style="width: 400px; height: 300px; top: 0px; left: 0px;position: absolute;"/>
+                </div>
+                <% } %>
+            </div>
+
+            <!-- Bullet Navigator Skin Begin -->
+            <style>
+                /* jssor slider bullet navigator skin 03 css */
+                /*
+                .jssorb03 div           (normal)
+                .jssorb03 div:hover     (normal mouseover)
+                .jssorb03 .av           (active)
+                .jssorb03 .av:hover     (active mouseover)
+                .jssorb03 .dn           (mousedown)
+                */
+                .jssorb03 div, .jssorb03 div:hover, .jssorb03 .av {
+                    background: url(/js/img/b03.png) no-repeat;
+                    overflow: hidden;
+                    cursor: pointer;
+                }
+
+                .jssorb03 div {
+                    background-position: -5px -4px;
+                }
+
+                .jssorb03 div:hover, .jssorb03 .av:hover {
+                    background-position: -35px -4px;
+                }
+
+                .jssorb03 .av {
+                    background-position: -65px -4px;
+                }
+
+                .jssorb03 .dn, .jssorb03 .dn:hover {
+                    background-position: -95px -4px;
+                }
+            </style>
+            <!-- bullet navigator container -->
+            <div u="navigator" class="jssorb03" style="position: absolute; bottom: 4px; left: 6px;">
+                <!-- bullet navigator item prototype -->
+                <div u="prototype"
+                     style="position: absolute; width: 21px; height: 21px; text-align:center; line-height:21px; color:white; font-size:12px;">
+                    <NumberTemplate></NumberTemplate>
+                </div>
+            </div>
+            <style>
+                /* jssor slider arrow navigator skin 03 css */
+                /*
+                .jssora03l              (normal)
+                .jssora03r              (normal)
+                .jssora03l:hover        (normal mouseover)
+                .jssora03r:hover        (normal mouseover)
+                .jssora03ldn            (mousedown)
+                .jssora03rdn            (mousedown)
+                */
+                .jssora03l, .jssora03r, .jssora03ldn, .jssora03rdn {
+                    position: absolute;
+                    cursor: pointer;
+                    display: block;
+                    background: url(/js/img/a03.png) no-repeat;
+                    overflow: hidden;
+                }
+
+                .jssora03l {
+                    background-position: -3px -33px;
+                }
+
+                .jssora03r {
+                    background-position: -63px -33px;
+                }
+
+                .jssora03l:hover {
+                    background-position: -123px -33px;
+                }
+
+                .jssora03r:hover {
+                    background-position: -183px -33px;
+                }
+
+                .jssora03ldn {
+                    background-position: -243px -33px;
+                }
+
+                .jssora03rdn {
+                    background-position: -303px -33px;
+                }
+            </style>
+        </div>
+        
+        <div class='demo' id='colors_demo' style="display:none;">
+          <div class='tools'>
+			<a href='#colors_sketch' data-download='png' style='float: right;' id="canvasDownload">Save</a>
+			<a href='#colors_sketch' data-clear='true' style='float: right; position:relative;margin-right:10px;'>Clear</a>
+          </div>
+          <canvas id="colors_sketch"></canvas>
+          <canvas id="colors_sketch2" style="display:none"></canvas> 
+        </div>        
+    </div>
+</div>
+
+<div data-role="collapsible" id="slidePreNext">
+	<h3 id="slidePreNextHeader">Previous & Next Slides</h3>
+	<div id="slidePrePage" style="display:inline;position: relative;"><img u="image" src="" border="0" style="position: relative; " /></div>
+	<div id="slideNextPage" style="display:inline;position: relative;"><img u="image" src="" border="0" style="position: relative; " /></div>
+</div>
+
+<div data-role="collapsible">
+    <h3>FeedBack</h3>
+
+    <div class="ui-body ui-body-a">
+        <div style="width:40%;position:relative;">
+            <label style="font-size: 120%;">Understandability:</label>
+            <img class="thumb" id="thumbup1" src="/styles/images/thumbup.png"
+                 style="height:75px; width:75px; display: inline"/>
+            <img class="thumb" id="thumbdown1" src="/styles/images/thumbdown.png"
+                 style="height:75px; width:75px; display: inline"/>
+        </div>
+        <div style="width:75px;position:absolute;right:0;top:0;">
+            <label style="font-size: 120%; ">Speed:</label>
+            <img class="thumb" id="thumbup2" src="/styles/images/thumbup.png"
+                 style="height:75px; width:75px; display: inline; "/>
+            <img class="thumb" id="thumbdown2" src="/styles/images/thumbdown.png"
+                 style="height:75px; width:75px; display: inline; "/>
+        </div>
+    </div>
+<!--	<div><p>Slide Tag Num: <span id="slideTag" style="color:red;"></span></p></div> -->
+</div>
+
+<div data-role="collapsible" id="commentArea">
+    <h3 id="commentAreaHeader">Questions</h3>
+	<div id="commentArea1" class="ui-body-d ui-content">
+
+	</div>
+</div>
+
+<div data-role="collapsible" id="quizArea">
+    <h3><span id="quizAreaHeader">Quiz</span></h3>
+    <button class="ui-btn ui-mini ui-corner-all" id="stopQuiz" style="display:none;">Stop and Collect Answers</button>
+    <div data-role="collapsibleset" data-theme="a" data-content-theme="a" data-mini="true" id="Quiz">
+    </div>
+</div>
+
+<div data-role="collapsible" id="evaluationArea">
+    <h3><span id="evaluationAreaHeader">Evaluation</span></h3>
+	<button class="ui-btn ui-mini ui-corner-all" id="evaluationstart">Evaluation</button>
+    <div data-role="collapsibleset" data-theme="a" data-content-theme="a" data-mini="true" id="Evaluation">
+    </div>
+</div>
+
+<div data-role="popup" id="popupBasic" style="postion:fixed;font-size:120%;font-weight:bold;">
+</div>
+
+<div data-role="popup" id="popupPPTNote" data-overlay-theme="a">
+    <a data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-left">Close</a>
+    <p id="popupPPTNoteText"></p>
+</div>
+
+<div data-role="popup" data-close-btn="right" id="chatDialog" data-dialog="true">
+		<div data-role="header">
+			<h1>Group Power</h1>
+		</div>
+		<select id="chatGroupNumber">
+			<option value="">Select Group Number</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+		</select>
+		<div role="main" class="ui-content">
+			<a id="chatNew" class="ui-btn ui-shadow ui-corner-all ui-btn-b">New</a>
+			<a id="chatSplit" class="ui-btn ui-shadow ui-corner-all ui-btn-b">Split</a>
+			<a id="chatStop" class="ui-btn ui-shadow ui-corner-all ui-btn-b">Stop</a>
+			<select id="chatGroupSelect">
+				<option value="0">Select group to chat</option>
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+			</select>
+			<textarea data-role="none" id="chatTextarea" style="height:200px;width:100%;"></textarea>
+			<a id="chatTextEnter" class="ui-btn ui-shadow ui-corner-all ui-btn-b">Enter</a>
+		</div>
+</div>
+
+<div data-role="popup" id="connectionAlert" style="width: 300px;">
+    <p style="font-color: red;">Warning! Connection to server failure. Reconnecting...</p>
+</div>
+
+</div>
+

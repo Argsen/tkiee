@@ -1,0 +1,1332 @@
+<link rel="stylesheet" type="text/css" href="/styles/jquery-ui-1.11.2.css">
+<link rel="stylesheet" type="text/css" href="/styles/uploadfile.css">
+<script type="text/javascript" src="/js/jquery-2.1.1.js"></script>
+<script type="text/javascript" src="/js/jquery-ui-1.11.2.js"></script>
+<script type="text/javascript" src="/js/jquery.uploadfile.js"></script>
+<script type="text/javascript" src="/js/FileSaver.js"></script>
+<style>
+    body {
+        font-size: 62.5%;
+        font-family: "Trebuchet MS", "Arial", "Helvetica", "Verdana", "sans-serif";
+    }
+    label, input { display:block; }
+    input.text { margin-bottom:12px; width:95%; padding: .4em; }
+    fieldset { padding:0; border:0; margin-top:25px; }
+    .validateTips { border: 1px solid transparent; padding: 0.3em; }
+</style>
+<script>
+    $(function() {
+        $.ajaxSetup({cache: false});
+		var userId = '<%= req.session.sUserId %>' == 'undefined' ? '0' : '<%= req.session.sUserId %>',
+			sessionId = '<%= req.session.sSessionId %>' == 'undefined' ? '0' : '<%= req.session.sSessionId %>',
+			sessionIdNew = 0,
+			sessionNameNew = '',
+			sessionKeyPhaseNew = '',
+			sessionPasswordNew = '';
+
+		$("#tabs").tabs({
+            width:300,
+            height:300
+        });
+		
+		var trialNumber;
+
+        var email = $( "#email" ),
+			password = $( "#password" ),
+			firstName = $("#firstName"),
+			lastName = $("#lastName"),
+			userEmail = '',
+			userPassword,
+			sessionName = $("#sessionName"),
+			sessionPassword = $("#sessionPassword"),
+			isRemote = $("#isRemote"),
+			keyPhase,
+			hostPassword,
+			allFields = $( [] ).add( email ).add( password ),
+			tips = $( ".validateTips" );
+			
+		var getUrlTag = document.URL.substring(document.URL.indexOf('=') + 1);
+		if (getUrlTag == "presenter") {
+			$('#tabs1').trigger("click");
+		} else if (getUrlTag == "participant") {
+			$('#tabs2').trigger("click");
+		} else {
+		
+		}
+
+        function updateTips( t ) {
+            tips
+                    .text( t )
+                    .addClass( "ui-state-highlight" );
+            setTimeout(function() {
+                tips.removeClass( "ui-state-highlight", 1500 );
+            }, 500 );
+        }
+
+        function checkLength( o, n, min, max ) {
+            if ( o.val().length > max || o.val().length < min ) {
+                o.addClass( "ui-state-error" );
+                updateTips( "Length of " + n + " must be between " +
+                        min + " and " + max + "." );
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        function checkRegexp( o, regexp, n ) {
+            if ( !( regexp.test( o.val() ) ) ) {
+                o.addClass( "ui-state-error" );
+                updateTips( n );
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        $(".createUser")
+                .button()
+                .click(function() {                    
+					if (trialNumber == "0808") {
+						$("#dialog-form").dialog("open");
+					} else {
+						$("#dialog-test").dialog("open");
+					}	
+                });			
+
+        $("#enterSession1")
+                .button()
+                .click(function(){
+					var key;
+					key = $("#keyPhase1").val().replace(/\s+/g, '');
+					if ($("#hostPassword1").val() == "") {
+						$("#dialog-alert").dialog("open");
+						$("#alerts").append("<label style=\"font-size:150%;color:#000099;\">Please enter session password.</label>");						
+					} else {
+						$.ajax({
+							type: "POST",
+							url: "session/join",
+							dataType: "json",
+							cache: false,
+							data: {"keyPhase": key, "password": $("#hostPassword1").val()},
+							success: function(response) {
+								if (response.error) {
+									alert(response.error);
+								} else {
+									if (response.role === 'host') {
+										if (response.isMobile) {
+											window.location.href='hostScreenM';
+										} else {
+											window.location.href='hostScreen';
+										}
+									} else {
+										if (response.isMobile) {
+											window.location.href='clientScreenM';
+										} else {
+											window.location.href='clientScreen';
+										}
+									}
+								}
+							}
+						});
+					}
+                });
+				
+        $("#enterSession2")
+                .button()
+                .click(function(){
+					var key;
+					key = $("#keyPhase2").val().replace(/\s+/g, '');
+					$.ajax({
+                        type: "POST",
+                        url: "session/join",
+                        dataType: "json",
+						cache: false,
+                        data: {"keyPhase": key},
+                        success: function(response) {
+                            if (response.error) {
+                                alert(response.error);
+                            } else {
+                                if (response.isMobile) {
+                                    window.location.href='clientScreenM';
+                                } else {
+                                    window.location.href='clientScreen';
+                                }
+                            }
+                        }
+                    })
+                });				
+
+        $("#createSession")
+                .button()
+                .click(function(){
+					if ($("#confirmsessionPassword").val().trim() == ''){
+						alert("Please enter password!");
+					} else if ($("#sessionName").val().trim() == '') {
+						alert("Please enter session name!");
+					} else if ($("#confirmsessionPassword").val() != $("#sessionPassword").val()) {
+						alert("Password not match!");
+					} else {
+						$("#dialog-Info").dialog("option", "title", "Terms and Conditions");
+						$("#dialog-Info").append("<p>You are responsible for your use of the Services, for any Content you post to the Services, and for any consequences thereof. The Content you submit, post, or display will be able to be viewed by other users of the Services and through third party services and websites. You should only provide Content that you are comfortable sharing with others under these Terms.</p>")
+						$("#dialog-Info").append("<p>All Content, whether publicly posted or privately transmitted, is the sole responsibility of the person who originated such Content. We may not monitor or control the Content posted via the Services and, we cannot take responsibility for such Content. Any use or reliance on any Content or materials posted via the Services or obtained by you through the Services is at your own risk.</p>");
+						$("#dialog-Info").append("<p>We do not endorse, support, represent or guarantee the completeness, truthfulness, accuracy, or reliability of any Content or communications posted via the Services or endorse any opinions expressed via the Services. You understand that by using the Services, you may be exposed to Content that might be offensive, harmful, inaccurate or otherwise inappropriate, or in some cases, postings that have been mislabeled or are otherwise deceptive. Under no circumstances will Tkiee be liable in any way for any Content, including, but not limited to, any errors or omissions in any Content, or any loss or damage of any kind incurred as a result of the use of any Content posted, transmitted or otherwise made available via the Services or broadcast elsewhere.</p>");
+						$("#dialog-Info").dialog('open');
+					}					
+                });
+		$("#createSession").css({
+			marginTop: 10,
+			marginBottom: 10
+		});
+		
+        $("#enterNewSession").hide();
+        $("#enterNewSession")
+                .button()
+                .click(function(){
+					$("#enterNewSession").button('option', 'label', 'Email links');
+					$("#enterNewSession").append("<img src=\"/styles/images/uploadfile loading.gif\"></img>");
+					$("#enterNewSession").button("disable");
+					$.ajax({
+						type: "POST",
+						url: "mail/send",
+						dataType: "json",
+						cache: false,
+						data: {"email": userEmail, "keyPhase": sessionKeyPhaseNew, "password": sessionPasswordNew, "sessionName": sessionNameNew},
+						success: function(response) {
+							$.ajax({
+								type: "POST",
+								url: "session/changestatus",
+								dataType: "json",
+								cache: false,
+								data: {"status": 2},
+								success: function(response) {
+									$("#enterNewSession").button( "enable" );
+									if (response.result === 'success') {
+										window.location.href='hostScreen';
+									} else {
+										alert("Can not enter session!");
+									}
+								}
+							});					
+						}
+					});							
+                });
+				
+		$("#enterNewSession").css({
+			marginTop: 10,
+			marginBottom: 10
+		});
+		
+		function userLogin(response){
+			if (response.id) {
+				userId = response.id;
+				userEmail = response.email;
+				$("#personalSessionHeader").show();
+				$("#personalSessionAccordion").show();
+				$(".userLoginForm").hide();
+				$(".userLogin").hide();
+				$(".createUser").hide();
+				$("#passwordRecovery1").hide();
+				$("#passwordRecovery2").hide();
+				$("#userLoginNotice").hide();
+				$(".userWelcome").text("Welcome! " + response.firstName + " " + response.lastName);
+				$(".userWelcome").show();
+				$(".userLogOut").show();
+				$("#enterSessionParticipanthr").hide();
+				$("#enterSessionParticipantlabel").hide();
+				$("#enterSessionParticipantLoginlabel").hide();
+				$.getJSON("session/list" ,{}, function(response) {
+					for (var i = 0; i < response.length; i ++) {
+						addPersonalSession (response[i]);
+					}
+				});
+                $.ajax({
+                    type: "GET",
+                    url: "session/listParticipated",
+                    dataType: "json",
+                    cache: false,
+                    data: {"userId": userId},
+                    success: function(res) {
+                        console.log(res);
+                        for (var i=0; i<res.length; i++) {
+                            addParticipatedSession(res[i]);
+                        }
+                    }
+                });  
+				$("#createSessionPresenter").show();								
+			} else {
+				alert('Wrong Email or Password');
+			}			
+		}
+
+        $("#userLogin1")
+                .button()
+                .click(function(){
+					$.ajax({
+                        type: "POST",
+                        url: "User/login",
+                        dataType: "json",
+						cache: false,
+                        data: {"email": $("#userEmail1").val(), "password": $("#userPassword1").val()},
+                        success: function(response) {
+                            console.log(response);
+                            //var res = JSON.parse(response);
+							userLogin(response);
+                        }
+                    })
+                });		
+				
+        $("#userLogin2")
+                .button()
+                .click(function(){
+					$.ajax({
+                        type: "POST",
+                        url: "User/login",
+                        dataType: "json",
+						cache: false,
+                        data: {"email": $("#userEmail2").val(), "password": $("#userPassword2").val()},
+                        success: function(response) {
+                            console.log(response);
+                            //var res = JSON.parse(response);
+							userLogin(response);
+                        }
+                    })
+                });					
+				
+		$(".userLogOut").click(function(){
+			if (confirm("Log Out?")) {
+				var x = $('<form></form>');
+				x.attr('action', '/User/logout');
+				x.attr('method', 'POST');
+				x.appendTo('body');
+				x.submit();				
+			}
+		});
+
+        $("#fileuploader").uploadFile({
+            url:"session/upload",
+            multiple:true,
+            fileName:"sessionFile",
+            maxFileSize: 1024*1024*10,
+			formData: {"sessionId":sessionIdNew},
+			onSuccess: function(files,data,xhr){
+				
+			},
+			onError: function(files,status,errMsg){
+				if (errMsg == "Forbidden") {
+					alert("Please upload quiz file after session file completed!\nQuiz file must have same name with Session File! ");
+				}
+			},
+            afterUploadAll:function() {
+				$.ajax({
+					type: "POST",
+					url: "session/changestatus",
+					dataType: "json",
+					cache: false,
+					data: {"status": 1},
+					success: function(response) {
+						$("#enterNewSession").button("enable");
+						$("#createSession").button("enable");							
+					}
+				});			
+            }
+        });
+
+        $("#dialog-form").dialog({
+            autoOpen:false,
+            height:500,
+            width:400,
+            modal:true,
+            buttons: {
+                "Create an account": function() {
+                    var bValid = true;
+                    allFields.removeClass( "ui-state-error" );
+                    bValid = bValid && checkLength(email, "email", 6, 80);
+                    bValid = bValid && checkLength(password, "password", 5, 16);
+                    bValid = bValid && checkRegexp( email, /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i, "eg. ui@jquery.com" );
+                    bValid = bValid && checkRegexp( password, /^([0-9a-zA-Z])+$/, "Password field only allow : a-z 0-9" );
+					bValid = bValid && checkLength(firstName, "First Name", 1, 20);
+					if ($("#confirmpassword").val() != $("#password").val()) {
+						alert("Password not match!");
+					} else {
+						if (bValid) {
+							$.ajax({
+								type: "POST",
+								url: "user/new",
+								dataType: "json",
+								cache: false,
+								data: {"email": email.val(), "password": password.val(), "firstName": firstName.val(), "lastName": lastName.val() },
+								success: function(response) {
+									if (response.error) {
+										alert(response.error);
+									} else {
+										$("#dialog-form").dialog("close");
+										alert("New User Created!");
+										$.ajax({
+											type: "POST",
+											url: "User/login",
+											dataType: "json",
+											cache: false,
+											data: {"email": email.val(), "password": password.val()},
+											success: function(response) {
+												console.log(response);
+												//var res = JSON.parse(response);
+												userLogin(response);
+											}
+										});										
+									}
+								}
+							});					
+						}
+					}
+                },
+                Cancel: function() {
+                    $("#dialog-form").dialog("close");
+                }
+            }
+        });
+		
+		$("#dialog-zipUrl").dialog({
+            autoOpen:false,
+            height:300,
+            width:300,
+            modal:true,
+            open: function () {
+                $.ajax({
+                    type: "GET",
+                    url: "session/listzip",
+                    dataType: "json",
+                    cache: false,
+                    data: {"sessionId": getZip.data.sessionId},
+                    success: function(response) {
+                        $("#zipUrl").empty();
+                        console.log(response);
+                        if (response.error) {
+                            alert(response.error);
+                        } else {
+                            if (response.length == 0) {
+                                var a = $("<a href=\"#\" style=\"display: block;\">");
+                                a.text("No zip file for this session found!");
+                                a.appendTo("#zipUrl");
+                            } else {
+                                for (var i=0; i < response.length; i++) {
+                                    var a = $("<a href=\"#\" style=\"display: block;\">");
+                                    if (response[i].type == "zip") {
+                                        a.text("Download " + (response[i].name.indexOf("transcript") != -1 ? "Transcription" : "Recording") + " Zip File.");
+                                        a.appendTo("#zipUrl");
+                                        a.click({"location": response[i].location}, function(data){
+                                            window.open("http://" + data.data.location);
+                                        });
+                                    } else if (response[i].type == "txt") {
+                                        a.text("Download Statistic File.");
+                                        a.appendTo("#zipUrl");
+                                        a.click({"location": response[i].location}, function(data){
+                                            window.open("http://" + data.data.location);
+                                        /*	$.ajax({
+                                                type: "GET",
+                                                url: "statistic/find",
+                                                dataType: "json",
+                                                cache: false,
+                                                data: {"sessionId": getZip.data.sessionId},
+                                                success: function(response) {
+                                                    var statisticExport = "";
+                                                    for (var i=0; i < response.length; i++) {
+                                                        statisticExport += response[i];
+                                                    }
+                                                    var blob = new Blob([statisticExport], {type: "text/csv;charset=utf-8;",});
+                                                    saveAs(blob, "Statistics.txt");  													
+                                                }   
+                                            });			*/								
+                                        });												
+                                    } else {
+                                        a.text("Download Evaluation File.");
+                                        a.appendTo("#zipUrl");
+                                        a.click({"location": response[i].location}, function(data){
+                                            window.open("http://" + data.data.location);							
+                                        });													
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });			
+            },
+			close:function(){
+				$("#zipUrl").empty();
+			},
+            buttons: {
+                "Dashboard": function() {
+                    $.ajax({
+                        type: "POST",
+                        url: "session/join",
+                        dataType: "json",
+                        cache: false,
+                        data: {"keyPhase": getZip.data.sessionKey, "orient": "dashboard", "userId": userId},
+                        success: function(response) {
+                            if (response.error) {
+                                alert(response.error);
+                            } else {
+                                window.location.href = 'dashboard';
+                            }
+                        }
+                    });	                 
+                },
+                Cancel: function() {
+                    $("#dialog-zipUrl").dialog("close");
+					$("#zipUrl").empty();
+                }
+            }			
+		});
+		
+		$("#dialog-pending").dialog({
+            autoOpen:false,
+            height:300,
+            width:600,
+            modal:true,
+			close:function(){
+				$("#inputPasswordPending").val('');
+				$("#pending").empty();
+			},
+            buttons: {
+                "Enter Session": function() {
+					if ($("#inputPasswordPending").val() == getPending.data.sessionPassword) {
+						$.ajax({
+							type: "POST",
+							url: "session/changepending",
+							dataType: "json",
+							cache: false,
+							data: {"sessionId": getPending.data.sessionId, "status": 2},
+							success: function(response) {
+								$("#pending").append("<p>Email Links</p>");
+								$("#pending").append("<img src=\"/styles/images/uploadfile loading.gif\"></img>");
+								$.ajax({
+									type: "POST",
+									url: "mail/send",
+									dataType: "json",
+									cache: false,
+									data: {"email": userEmail, "keyPhase": getPending.data.sessionKey, "password": $("#inputPasswordPending").val(), "sessionName": getPending.data.sessionName},
+									success: function(response) {
+										$.ajax({
+											type: "POST",
+											url: "session/join",
+											dataType: "json",
+											cache: false,
+											data: {"keyPhase": getPending.data.sessionKey, "password": $("#inputPasswordPending").val()},
+											success: function(response) {
+												if (response.error) {
+													alert(response.error);
+												} else {
+													if (response.isMobile) {
+														window.location.href='hostScreenM';
+													} else {
+														window.location.href='hostScreen';
+													}
+												}
+											}
+										});						
+									}
+								});		
+							}
+						});					
+					} else {
+						alert("Wrong Password!");
+					}
+                },
+                Cancel: function() {
+                    $("#dialog-pending").dialog("close");
+					$("#inputPasswordPending").val('');
+					$("#pending").empty();
+                }
+            }			
+		});		
+		
+		$("#dialog-test").dialog({
+            autoOpen:false,
+            height:300,
+            width:300,
+            modal:true,
+            buttons: {
+                "Confirm": function() {
+						if ($("#testPassword").val() == '0808') {
+							$("#dialog-test").dialog("close");
+							$("#testPassword").empty();
+							trialNumber = "0808";
+							$("#dialog-form").dialog("open");
+						} else {
+							alert("Wrong Trial Password!");
+						}
+                },
+                Cancel: function() {
+					$("#dialog-test").dialog('close');
+					$("#testPassword").empty();
+                }
+            }			
+		});   
+		
+		$("#dialog-quizUrl").dialog({
+            autoOpen:false,
+            height:300,
+            width:300,
+            modal:true,
+			close: function(event, ui) { $("#quizList").empty(); },
+            buttons: {
+            }			
+		});  
+		
+		var getZip={};
+		
+        $.getJSON("session/list" ,{}, function(response) {
+            for (var i = 0; i < response.length; i ++) {
+				var li = $("<li class=\"sessionList\" style=\"display:none;\">");
+				if (response[i].isRemote === false && response[i].creatorId != 0) {
+					
+				} else {
+					if (response[i].status == 2) {
+						$("<a>").text("Session Name & Key: " + response[i].name + "  [" + response[i].keyPhase + "]").appendTo(li);
+						li.appendTo("#existSession");
+					} else if (response[i].status == 1) {
+						
+					} else {
+						$("<a href=\"#\">").text("Session Name & Key: " + response[i].name + "  [" + response[i].keyPhase + "]").appendTo(li);
+						li.appendTo("#endedSession");
+						li.click({"sessionId": response[i].id, "sessionKey": response[i].keyPhase, "sessionPassword": response[i].password, "sessionName": response[i].name}, function(obj){
+							getZip = obj;
+							$("#dialog-zipUrl").dialog("open");
+							$("#dialog-zipUrl").dialog('option', 'title', obj.data.sessionName);
+						});
+					}
+				}
+				addPersonalSession(response[i]);
+            }
+        });
+        
+        $.ajax({
+            type: "GET",
+            url: "session/listParticipated",
+            dataType: "json",
+            cache: false,
+            data: {"userId": userId},
+            success: function(res) {
+                for (var i=0; i<res.length; i++) {
+                    addParticipatedSession(res[i]);
+                }
+            }
+        });        
+		
+        function showMoreSession(Obj) {
+            
+        }
+        
+        function showLessSession(Obj) {
+            
+        }
+		var size_liPe,
+            size_liPa,
+			size_liExi,
+			size_liEnd,
+			lipe_x,
+            lipa_x,
+			liExi_x,
+			liEnd_x;
+		$("#tabs3").on("click", function (event, ui) {
+			size_liPe = $("#peSession li").size();
+            size_liPa = $("#paSession li").size();
+			size_liExi = $("#existSession li").size();
+			size_liEnd =  $("#endedSession li").size();
+			lipe_x = size_liPe - 6;
+            lipa_x = size_liPa - 6;
+			liExi_x = size_liExi - 6;
+			liEnd_x = size_liEnd - 6;
+            if (size_liPe < 6) {
+                $('#peSession li:eq(0)').show();
+                $('#peSession li:gt(0)').show();
+            } else {
+                $('#peSession li:gt('+ lipe_x +')').show();
+            }
+            if (size_liPa < 6) {
+                $('#paSession li:eq(0)').show();
+                $('#paSession li:gt(0)').show();
+            } else {
+                $('#paSession li:gt('+ lipa_x +')').show();
+            }
+			$('#existSession li:gt('+ liExi_x +')').show();
+			$('#endedSession li:gt('+ liEnd_x +')').show();			
+		});
+		
+		$("#loadMorepeSession")
+            .button({text: false, label: 'More',icons:{primary:"ui-icon-plus"}})
+            .click(function(){
+                if (size_liPe < 6) {
+                    
+                } else {       
+                    lipe_x = ((lipe_x - 5) > 0) ? (lipe_x - 5) : 0;
+                    if (lipe_x == 0) {
+                        $('#peSession li:eq('+lipe_x+')').show();
+                    }
+                    $('#peSession li:gt('+lipe_x+')').show();
+                }
+			});		
+			
+		$("#showLesspeSession")
+            .button({text: false, label: 'Less',icons:{primary:"ui-icon-minus"}})
+            .click(function(){
+				lipe_x =((lipe_x + 5) < (size_liPe - 6)) ? (lipe_x + 5) : (size_liPe - 6) ;
+                if (size_liPe < 6) {
+                    
+                } else {                  
+                    $('#peSession li').not(':gt('+lipe_x+')').hide();
+                }
+			});
+            
+		$("#loadMorepaSession")
+            .button({text: false, label: 'More',icons:{primary:"ui-icon-plus"}})
+            .click(function(){
+                if (size_liPa < 6) {
+                    
+                } else {                   
+                    lipa_x = ((lipa_x - 5) > 0) ? (lipa_x - 5) : 0;
+                    if (lipa_x == 0) {
+                        $('#paSession li:eq('+lipa_x+')').show();
+                    }
+                    $('#paSession li:gt('+lipa_x+')').show();	
+                }
+			});		
+			
+		$("#showLesspaSession")
+            .button({text: false, label: 'Less',icons:{primary:"ui-icon-minus"}})
+            .click(function(){
+				lipa_x =((lipa_x + 5) < (size_liPa - 6)) ? (lipa_x + 5) : (size_liPa - 6) ;
+                if (size_liPa < 6) {
+                    
+                } else {
+                    $('#paSession li').not(':gt('+lipa_x+')').hide();
+                }
+			});	            
+
+		$("#loadMoreexistSession")
+            .button({text: false, label: 'More',icons:{primary:"ui-icon-plus"}})
+            .click(function(){
+                if (size_liExi < 6) {
+                    
+                } else {                   
+                    liExi_x = ((liExi_x - 5) > 0) ? (liExi_x - 5) : 0;
+                    if (liExi_x == 0) {
+                        $('#existSession li:eq('+liExi_x+')').show();
+                    }
+                    $('#existSession li:gt('+liExi_x+')').show();
+                }
+			});	
+			
+		$("#showLessexistSession")
+            .button({text: false, label: 'Less',icons:{primary:"ui-icon-minus"}})
+            .click(function(){
+				liExi_x =((liExi_x + 5) < (size_liExi - 6)) ? (liExi_x + 5) : (size_liExi - 6) ;
+                if (size_liExi < 6) {
+                    
+                } else {                
+                    $('#existSession li').not(':gt('+liExi_x+')').hide();
+                }
+			});	
+			
+		$("#loadMoreendedSession")
+            .button({text: false, label: 'More',icons:{primary:"ui-icon-plus"}})
+            .click(function(){
+                if (size_liEnd < 6) {
+                    
+                } else {  
+                    liEnd_x = ((liEnd_x - 5) > 0) ? (liEnd_x - 5) : 0;
+                    if (liEnd_x == 0) {
+                        $('#endedSession li:eq('+liEnd_x+')').show();
+                    }
+                    $('#endedSession li:gt('+liEnd_x+')').show();
+                }
+			});	
+			
+		$("#showLessendedSession")
+            .button({text: false, label: 'Less',icons:{primary:"ui-icon-minus"}})
+            .click(function(){
+				liEnd_x =((liEnd_x + 5) < (size_liEnd - 6)) ? (liEnd_x + 5) : (size_liEnd - 6) ;
+                if (size_liEnd < 6) {
+                    
+                } else {  
+                    $('#endedSession li').not(':gt('+liEnd_x+')').hide();
+                }
+			});				
+		
+		//-------------------------------------------
+		// Create Session settings below
+		//-------------------------------------------			
+
+		$(".userWelcome").hide();
+		$(".userLogOut").hide();		
+		
+		if (userId == '0') {
+		
+		} else {
+			$.ajax({
+				type: "GET",
+				url: "User/find",
+				dataType: "json",
+				cache: false,
+				data: {"id": userId},
+				success: function(response) {
+					console.log(response);
+					userEmail = response.email;
+					if (response.id) {
+						$("#personalSessionHeader").show();
+						$("#personalSessionAccordion").show();
+						$(".userLoginForm").hide();
+						$(".userLogin").hide();
+						$("#passwordRecovery1").hide();
+						$("#passwordRecovery2").hide();
+						$(".createUser").hide();
+						$("#userLoginNotice").hide();
+						$(".userWelcome").text("Welcome! " + response.firstName + " " + response.lastName);
+						$(".userWelcome").show();
+						$(".userLogOut").show();
+						$("#enterSessionParticipanthr").hide();
+						$("#enterSessionParticipantlabel").hide();
+						$("#enterSessionParticipantLoginlabel").hide();
+						$("#createSessionPresenter").show();
+					} else {
+						$("#personalSessionHeader").hide();
+						$("#personalSessionAccordion").hide();
+					}
+				}
+			});
+		}
+		
+		$("#quizAndEvaluation").click(function(){
+			window.open("http://223.27.30.202:8080/OfflineEditor_Templates.zip"); 
+		});	
+	
+		$("#radioSession").buttonset();
+		$("#createSessionButton").click(function(){
+			$("#loginPresenter").show();
+			$("#enterSessionPresenter").hide();
+			if (userId == '0') {
+				$("#createSessionPresenter").hide();
+			} else {
+				$("#createSessionPresenter").show();
+			}
+		});
+		$("#enterSessionButton").click(function(){
+			$("#loginPresenter").hide();
+			$("#createSessionPresenter").hide();
+			$("#enterSessionPresenter").show();			
+		});
+		$("#createSessionButton").trigger("click");
+	
+		$("#dialog-Info").dialog({
+            autoOpen:false,
+            height:300,
+            width:600,
+            modal:true,
+			closeOnEscape: false,
+			open: function(event, ui) { $(".ui-dialog-titlebar-close").hide(); },
+			close: function(event, ui) {$("#dialog-Info").empty();},
+            buttons: {
+                "Accept": function() {
+					$("#dialog-Info").dialog("close");
+					$("#dialog-Info").empty();
+					$("#createSession").button( "disable" );
+					$.ajax({
+						type: "POST",
+						url: "session/new",
+						dataType: "json",
+						cache: false,
+						data: {"name": sessionName.val(), "password": sessionPassword.val(),"isRemote": isRemote.is(':checked'), "userId": userId},
+						success: function(response) {
+							sessionIdNew = response.id;
+							sessionNameNew = response.name;
+							sessionKeyPhaseNew = response.keyPhase;
+							sessionPasswordNew = response.password;
+							if (response.error) {
+								if (confirm("There is a previous session found. Log out and create new session?")) {
+									$.ajax({
+										type: "GET",
+										url: "/logout",
+										cache: false,
+										success: function(response) {
+										//	alert("This session has been ended!");
+										//	window.location.href = '/login';
+										}
+									});
+									$("#createSession").button( "enable" );
+								} else {
+									$("#createSession").button( "enable" );
+								}
+							} else {
+								$("#createSession").hide();
+								$("#enterNewSession").show();
+								$("#enterNewSession").button("disable");
+								$("#uploaderhr").show();
+								$("#uploaderlabel").show();
+								$("#uploader").show();
+							}					
+						}
+					});
+                },
+                Reject: function() {
+					$("#dialog-Info").dialog("close");
+					$("#dialog-Info").empty();
+                }
+            }			
+		});  
+		
+/*		$("#termsConditions").click(function(){
+			$("#dialog-Info").dialog("option", "title", "Terms and Conditions");
+			$("#dialog-Info").append("<p>You are responsible for your use of the Services, for any Content you post to the Services, and for any consequences thereof. The Content you submit, post, or display will be able to be viewed by other users of the Services and through third party services and websites. You should only provide Content that you are comfortable sharing with others under these Terms.</p>")
+			$("#dialog-Info").append("<p>All Content, whether publicly posted or privately transmitted, is the sole responsibility of the person who originated such Content. We may not monitor or control the Content posted via the Services and, we cannot take responsibility for such Content. Any use or reliance on any Content or materials posted via the Services or obtained by you through the Services is at your own risk.</p>");
+			$("#dialog-Info").append("<p>We do not endorse, support, represent or guarantee the completeness, truthfulness, accuracy, or reliability of any Content or communications posted via the Services or endorse any opinions expressed via the Services. You understand that by using the Services, you may be exposed to Content that might be offensive, harmful, inaccurate or otherwise inappropriate, or in some cases, postings that have been mislabeled or are otherwise deceptive. Under no circumstances will Tkiee be liable in any way for any Content, including, but not limited to, any errors or omissions in any Content, or any loss or damage of any kind incurred as a result of the use of any Content posted, transmitted or otherwise made available via the Services or broadcast elsewhere.</p>");
+			$("#dialog-Info").dialog("open");
+		});  */
+		
+		$("#termsConditions").css({
+			marginTop: 10,
+			marginBottom: 10
+		});
+
+		//-------------------------------------------
+		// Session Lists settings below
+		//-------------------------------------------
+        
+        $("#personalSessionAccordion").accordion({
+            heightStyle: "content",
+            collapsible: true
+        });
+        $("#existSessionAccordion").accordion({
+            heightStyle: "content",
+            collapsible: true
+        });
+        $("#endedSessionAccordion").accordion({
+            heightStyle: "content",
+            collapsible: true
+        });
+		
+		var getPending = {}; 
+		function addPersonalSession(res){
+			var liP = $("<li class=\"sessionListP\" style=\"display:none;\">");
+			if (res.status == 1) {
+				if (res.creatorId == parseInt(userId) && res.creatorId != 0) {
+					$("#peSession").append("<li class=\"sessionListP\" style=\"display:none;\">Session Name & Key: " + res.name + " [<a id=\"sessionListP" + res.keyPhase + "\" href=\"#\">" + res.keyPhase + "</a>] (Pending)</li>");
+					$("#sessionListP" + res.keyPhase).click({"sessionId": res.id, "sessionKey": res.keyPhase, "sessionPassword": res.password, "sessionName": res.name}, function(obj){
+						getPending = obj;
+						$("#dialog-pending").dialog("open");
+						$("#dialog-pending").dialog('option', 'title', "Active Pending Session: " + obj.data.sessionName);
+					});									
+				}					
+			} else if (res.status == 2) {
+				if (res.creatorId == parseInt(userId) && res.creatorId != 0) {
+					$("#peSession").append("<li class=\"sessionListP\" style=\"display:none;\">Session Name & Key: " + res.name + " [<a id=\"sessionListP" + res.keyPhase + "\" href=\"#\">" + res.keyPhase + "</a>] (Existing)</li>");
+					$("#sessionListP" + res.keyPhase).click({"sessionId": res.id, "sessionKey": res.keyPhase, "sessionPassword": res.password, "sessionName": res.name}, function(obj){
+						$.ajax({
+							type: "POST",
+							url: "session/join",
+							dataType: "json",
+							cache: false,
+							data: {"keyPhase": obj.data.sessionKey, "password": obj.data.sessionPassword},
+							success: function(response) {
+								if (response.error) {
+									alert(response.error);
+								} else {
+									if (response.isMobile) {
+										window.location.href='hostScreenM';
+									} else {
+										window.location.href='hostScreen';
+									}
+								}
+							}
+						});		
+					});	
+				}				
+			} else {
+				if (res.creatorId == parseInt(userId) && res.creatorId != 0) {
+					$("#peSession").append("<li class=\"sessionListP\" style=\"display:none;\">Session Name & Key: " + res.name + " [<a id=\"sessionListP" + res.keyPhase + "\" href=\"#\">" + res.keyPhase + "</a>] (Completed)</li>");
+					$("#sessionListP" + res.keyPhase).click({"sessionId": res.id, "sessionKey": res.keyPhase, "sessionPassword": res.password, "sessionName": res.name}, function(obj){
+						getZip = obj;
+						$("#dialog-zipUrl").dialog("open");
+						$("#dialog-zipUrl").dialog('option', 'title', obj.data.sessionName);
+					});						
+				}			
+			}
+		}
+        
+        function addParticipatedSession(res) {
+			var liPa = $("<li class=\"sessionListPa\" style=\"display:none;\">");
+			if (res.status == 2) {
+                $("#paSession").append("<li class=\"sessionListPa\" style=\"display:none;\">Session Name & Key: " + res.name + " [<a id=\"sessionListPa" + res.keyPhase + "\" href=\"#\">" + res.keyPhase + "</a>] (Existing)</li>");
+                $("#sessionListPa" + res.keyPhase).click({"sessionId": res.id, "sessionKey": res.keyPhase, "sessionPassword": res.password, "sessionName": res.name}, function(obj){
+                    $.ajax({
+                        type: "POST",
+                        url: "session/join",
+                        dataType: "json",
+                        cache: false,
+                        data: {"keyPhase": obj.data.sessionKey},
+                        success: function(response) {
+                            if (response.error) {
+                                alert(response.error);
+                            } else {
+                                if (response.isMobile) {
+                                    window.location.href='clientScreenM';
+                                } else {
+                                    window.location.href='clientScreen';
+                                }
+                            }
+                        }
+                    });		
+                });				
+			} else {
+                $("#paSession").append("<li class=\"sessionListPa\" style=\"display:none;\">Session Name & Key: " + res.name + " [<a id=\"sessionListPa" + res.keyPhase + "\" href=\"#\">" + res.keyPhase + "</a>] (Completed)</li>");
+                $("#sessionListPa" + res.keyPhase).click({"sessionId": res.id, "sessionKey": res.keyPhase, "sessionPassword": res.password, "sessionName": res.name}, function(obj){
+                    getZip = obj;
+                    $("#dialog-zipUrl").dialog("open");
+                    $("#dialog-zipUrl").dialog('option', 'title', obj.data.sessionName);
+                });								
+			}
+        }
+
+		//-------------------------------------------
+		// Feedback settings below
+		//-------------------------------------------	
+
+		$("#contactUsConfirm")
+				.button()
+				.click(function() {
+					if ($("#contactUsEmail").val()=="") {
+						alert("Please Enter Email Address.");
+					} else {
+						$("#contactUsConfirm").button('option', 'label', 'Sending Query');
+						$("#contactUsConfirm").append("<img style=\"display: inline;\" src=\"/styles/images/uploadfile loading.gif\"></img>");
+						$("#contactUsConfirm").button("disable");
+						$.ajax({
+							type: "POST",
+							url: "Mail/feedback",
+							dataType: "json",
+							cache: false,
+							data: {"name": $("#contactUsName").val(), "email": $("#contactUsEmail").val(), "detail": $("#contactUsDetail").val()},
+							success: function(response) {
+								alert("Your query has been sent. We will endevour to contact you as soon as possible!");
+								$("#contactUsConfirm").button('option', 'label', 'Confirm');
+								$("#contactUsConfirm").button("enable");
+								$("#contactUsName").val('');
+								$("#contactUsOrganization").val('');
+								$("#contactUsEmail").val('');
+								$("#contactUsPhone").val('');
+								$("#contactUsDetail").val('');								
+							}
+						});
+					}
+				});
+
+		$("#contactUsCancel")
+				.button()
+				.click(function() {
+					$("#contactUsName").val('');
+					$("#contactUsOrganization").val('');
+					$("#contactUsEmail").val('');
+					$("#contactUsPhone").val('');
+					$("#contactUsDetail").val('');
+				});
+
+		//-------------------------------------------
+		// Other settings below
+		//-------------------------------------------	
+        
+        socket.on('connect', function () { 
+            if ($("#connectionAlert").is(':Visible')){
+                $("#connectionAlert").hide();
+            } else {
+            
+            }
+        });    
+        
+        socket.on('disconnect', function () { 
+            $("#connectionAlert").show();
+        });            
+		
+		$("#tip2").click(function(){
+			window.open("http://223.27.30.202:8080/upload/ScreenTimeout.apk"); 
+		});
+		
+		$("#dialog-alert").dialog({
+            autoOpen:false,
+            height:150,
+            width:300,
+            modal:true,
+			closeOnEscape: false,
+			close: function(event, ui) {$("#alerts").empty();},
+            buttons: {
+                "Ok": function() {
+					$("#dialog-alert").dialog("close");
+                }
+            }			
+		});  		
+		
+		$("#dialog-password").dialog({
+            autoOpen:false,
+            height:300,
+            width:600,
+            modal:true,
+			closeOnEscape: false,
+			close: function(event, ui) {$("#dialog-password").empty();},
+            buttons: {
+                "Accept": function() {
+					$("#dialog-password").append("<p id=\"dialogPasswordP\">Email Password</p>");
+					$("#dialog-password").append("<img id=\"dialogPasswordImg\" src=\"/styles/images/uploadfile loading.gif\"></img>");
+					$.ajax({
+						type: "POST",
+						url: "mail/getpassword",
+						dataType: "json",
+						cache: false,
+						data: {"email": $("#passwordRecoveryEmail").val()},
+						success: function(response) {
+							if(response.error) {
+								$("#dialog-alert").dialog("open");
+								$("#alerts").append("<label style=\"font-size:200%;color:#000099;\">" + response.error + "</label>");
+							} else {
+								$("#dialog-password").append("<label style=\"color:#000099;\">Password has been sent to your email. Please check.</label>");
+								$("#dialogPasswordP").remove();
+								$("#dialogPasswordImg").remove();
+							}
+						}
+					});
+                },
+				"Close": function(){
+					$("#dialog-password").dialog("close");
+				}
+            }			
+		});  
+		
+		$("#passwordRecovery1").click(function(){
+			$("#dialog-password").dialog("open");
+			$("#dialog-password").append("<label for=\"passwordRecoveryEmail\">Enter Your Account (Email):</label>");
+			$("#dialog-password").append("<input type=\"text\" id=\"passwordRecoveryEmail\" value=\"\" class=\"text ui-widget-content ui-corner-all\"/>")	
+		});
+		
+		$("#passwordRecovery2").click(function(){
+			$("#dialog-password").dialog("open");
+			$("#dialog-password").append("<label for=\"passwordRecoveryEmail\">Enter Your Account (Email):</label>");
+			$("#dialog-password").append("<input type=\"text\" id=\"passwordRecoveryEmail\" value=\"\" class=\"text ui-widget-content ui-corner-all\"/>")	
+		});		
+	});
+		
+</script>
+
+
+<div id="tabs">
+    <ul>
+        <li><a id="tabs1" href="#tabs-1">Presenter</a></li>
+        <li><a id="tabs2" href="#tabs-2">Participant</a></li>
+        <li><a id="tabs3" href="#tabs-3">Session List</a></li>
+		<li><a id="tabs4" href="#tabs-4">Contact Us</a><li>
+    </ul>
+    <div id="tabs-1">
+		<form onSubmit="return false;">
+			<div id="radioSession">
+				<input type="radio" id="createSessionButton" name="radio" style="display:inline;"><label for="createSessionButton">Create session</label>
+				<input type="radio" id="enterSessionButton" name="radio" style="display:inline;"><label for="enterSessionButton">Enter session</label>
+			</div>
+		</form>
+
+		<div id="loginPresenter" style="display:none;margin-top:10px;">
+			<label id="userLoginNotice" style="font-style:italic;color:#000099;display:block;margin-top:10px;">Guest Presenters: Login required for creating new sessions, Not required for entering sessions.</label>
+			<label class="userWelcome" style="display:inline;margin-top:10px;"></label>
+			<p class="userLogOut" style="display:inline;margin-top:10px;"><a href="#">Log Out</a></p>
+			<form class="userLoginForm" onSubmit="return false;">
+				<fieldset>
+					<label for="userEmail1" id="userEmailL1">Email:</label>
+					<input type="text" name="userEmail" id="userEmail1" value="" class="text ui-widget-content ui-corner-all" />
+					<label for="userPassword1" id="userPasswordL1">Password:</label>
+					<input type="password" name="userPassword" id="userPassword1" value="" class="text ui-widget-content ui-corner-all" />
+				</fieldset>
+			</form>
+			<button class="userLogin" id="userLogin1">User Login</button>
+			<button class="createUser">Create New User</button>
+			<label href="#" id="passwordRecovery1" style="font-style:italic;color:#000099;display:inline;">Forget Your Password?</label>
+		</div>
+	
+		<div id="createSessionPresenter" style="display:none;">
+			<form onSubmit="return false;">
+			<fieldset>
+				<label for="sessionName">Enter Session Name:</label>
+				<input type="text" name="sessionName" id="sessionName" value="" class="text ui-widget-content ui-corner-all" />
+				<label for="sessionPassword">Enter Session Password:</label>
+				<input type="password" name="sessionPassword" id="sessionPassword" value="" class="text ui-widget-content ui-corner-all" />
+				<label for="confirmsessionPassword">Confirm Session Password:</label>
+				<input type="password" name="sessionPassword" id="confirmsessionPassword" value="" class="text ui-widget-content ui-corner-all" />
+			</fieldset>
+			</form>
+			<div>
+				<input type="checkbox" id="isRemote" Style="display:inline;">
+				<label for="isRemote" Style="display:inline;">Open to Public</label>
+			</div>   
+			<button id="createSession" style="display: block;text-align:center;">Create New Session</button>
+			<button id="enterNewSession" style="display: inline;" disabled: true>Enter Session</button>
+	<!--	<label style="font-style:italic;color:#000099;">By entering the session, you agree to our terms and conditions. Click <u><a id="termsConditions" href="#">here</a></u> for details.</label>  -->
+			<hr id="uploaderhr" style="margin-top:10px;margin-bottom:10px;display: none;"></hr>
+			<label id="uploaderlabel" style="font-style:italic;color:#000099;margin-top:10px;margin-bottom:10px;display: none;">Upload presentation files and Pre-defined Quiz/Evaluation (Optional, Click <u><a id="quizAndEvaluation" href="#">here</a></u> to download offline editor and template for quiz and evaluation.</label>
+			<div id="uploader" style="display: none;">
+				<div id="fileuploader">Upload</div>
+			</div>				
+		</div>
+		
+		<div id="enterSessionPresenter" style="display:none;">
+			<form class="enterSessionForm"  onSubmit="return false;">
+				<fieldset>
+					<label for="keyPhase1">Enter Participant Key:</label>
+					<input type="text" name="keyPhase" id="keyPhase1" value="" class="text ui-widget-content ui-corner-all" />
+					<label for="hostPassword1">Enter Host Password:</label>
+					<input type="password" name="hostPassword" id="hostPassword1" value="" class="text ui-widget-content ui-corner-all" />
+				</fieldset>
+			</form>
+			<button id="enterSession1">Enter Session</button>
+		</div>
+    </div>
+	
+    <div id="tabs-2">
+		<label id="enterSessionParticipantLoginlabel" style="font-style:italic;color:#000099;margin-top:10px;margin-bottom:10px;">Please login to enter an existing session.</label>
+		<div id="loginParticipant">
+			<label class="userWelcome" style="display:inline;margin-top:10px;"></label>
+			<label class="userLogOut" style="display:inline;margin-top:10px;"><a href="#">Log Out</a></label>
+			<form class="userLoginForm" onSubmit="return false;">
+				<fieldset>
+					<label for="userEmail" id="userEmailL2">Email:</label>
+					<input type="text" name="userEmail" id="userEmail2" value="" class="text ui-widget-content ui-corner-all" />
+					<label for="userPassword" id="userPasswordL2">Password:</label>
+					<input type="password" name="userPassword" id="userPassword2" value="" class="text ui-widget-content ui-corner-all" />
+				</fieldset>
+			</form>
+			<button class="userLogin" id="userLogin2">User Login</button>
+			<button class="createUser">Create New User</button>
+			<label href="#" id="passwordRecovery2" style="font-style:italic;color:#000099;display:inline;">Forget Your Password?</label>
+		</div>
+		
+		<hr id="enterSessionParticipanthr" style="margin-top:10px;margin-bottom:10px;"></hr>
+		
+		<div id="enterSessionParticipant">
+			<label id="enterSessionParticipantlabel" style="font-style:italic;color:#000099;margin-top:10px;margin-bottom:10px;">Guest Participant: Enter an existing session anonymously.</label>	
+			<form class="enterSessionForm" onSubmit="return false;">
+				<fieldset>
+					<label for="keyPhase2">Enter Participant Key:</label>
+					<input type="text" name="keyPhase" id="keyPhase2" value="" class="text ui-widget-content ui-corner-all" />
+	<!--			<label for="hostPassword">Enter Host Password: (only required for speakers)</label>
+					<input type="password" name="hostPassword" id="hostPassword2" value="" class="text ui-widget-content ui-corner-all" />  -->
+				</fieldset>
+			</form>
+			<button id="enterSession2">Enter Session</button>
+		</div>		
+    </div>
+
+    <div id="tabs-3">
+		<h4 id="personalSessionHeader" style="display:none;">Personal Sessions:</h4>
+		<div id="personalSessionAccordion" style="display: none;">
+            <h3>Presented</h3>
+            <div id="peSession">
+                <button id="loadMorepeSession">More</button>
+                <button id="showLesspeSession">Less</button>			
+            </div>
+            <h3>Participated</h3>
+            <div id="paSession">
+                <button id="loadMorepaSession">More</button>
+                <button id="showLesspaSession">Less</button>
+            </div>
+		</div>
+		<h4>Existing Sessions:</h4>
+        <div id="existSessionAccordion">
+            <h3>b</h3>
+            <div id="existSession">
+                <button id="loadMoreexistSession">More</button>
+                <button id="showLessexistSession">Less</button>
+            </div>
+        </div>
+		<h4>Completed Sessions:</h4>
+		<div id="endedSessionAccordion">
+            <h3>c</h3>
+            <div id="endedSession">
+                <button id="loadMoreendedSession">More</button>
+                <button id="showLessendedSession">Less</button>
+            </div>
+        </div>
+    </div>
+	
+    <div id="tabs-4">
+		<label style="font-size:130%;font-style:italic;color:#000099;margin-top:30px;margin-bottom:10px;">We are delighted that you wish to contact us; Please complete as much of the form below as you wish; but please ensure that you have a valid email address so that we can respond to your request.</label>
+        <form onSubmit="return false;">
+		<fieldset>
+			<label for="contactUsName">Your Name:</label>
+			<input type="text" id="contactUsName" value="" class="text ui-widget-content ui-corner-all" />
+			<label for="contactUsEmail">Your Email Address*:</label>
+			<input type="text" id="contactUsEmail" value="" class="text ui-widget-content ui-corner-all" />			
+			<label for="contactUsDetail">Message: </label>
+			<textarea type="textarea" style="width:90%;height:200px;" id="contactUsDetail" value="" class="ui-widget-content ui-corner-all" /></textarea>			
+		</fieldset>
+		</form>
+        <button id="contactUsConfirm">Confirm</button>
+        <button id="contactUsCancel">Cancel</button>			
+    </div>
+</div>
+
+<label id="tip1" style="font-size:120%;font-style:italic;color:#000099;margin-top:10px;margin-bottom:10px;">All browsers are supported. Desktop recording requires flash. Mobile recording requires Firefox.</label>
+<label style="font-size:120%;font-style:italic;color:#000099;margin-top:10px;margin-bottom:10px;" >For Android phone or tablet devices, you will improve the experience if you download our free App to temporarily disable screen ‘time-out’. <u><a id="tip2" href="#">Download</a></u></label>
+<label id="tip3" style="font-size:130%;font-style:italic;color:#000099;margin-top:30px;margin-bottom:10px;" >Powered by Tkiee: Learning Innovation By Design, © TKIEE, 2014</label>
+
+<div id="dialog-form" title="Create new user">
+    <p class="validateTips">All form fields are required.</p>
+    <form onSubmit="return false;">
+        <fieldset>
+            <label for="email">Email</label>
+            <input type="text" name="email" id="email" value="" class="text ui-widget-content ui-corner-all" />
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" value="" class="text ui-widget-content ui-corner-all" />
+            <label for="confirmpassword">Confirm Password</label>
+            <input type="password" name="password" id="confirmpassword" value="" class="text ui-widget-content ui-corner-all" />
+            <label for="firstName">First Name</label>
+            <input type="text" name="firstName" id="firstName" value="" class="text ui-widget-content ui-corner-all" />
+            <label for="lastName">Last Name</label>
+            <input type="text" name="lastName" id="lastName" value="" class="text ui-widget-content ui-corner-all" />
+        </fieldset>
+    </form>
+</div>
+
+<div id="dialog-zipUrl" title="Zip File Download">
+	<div id="zipUrl">
+	</div>
+</div>
+
+<div id="dialog-pending" title="Active Pending Session">
+	<label for="inputPasswordPending">Enter Session Password: </label>
+	<input type="password" id="inputPasswordPending" />
+	<div id="pending">
+	</div>
+</div>
+
+<div id="dialog-quizUrl" title="Quiz File Download">
+	<div id="quizList"></div>
+</div>
+
+<div id="dialog-test" title="Trial Password Required">
+	<label for="testPassword">Enter Trial Password: </label>
+	<input type="password" id="testPassword"></input>
+</div>  
+
+<div id="dialog-Info" title = "">
+	
+</div>
+
+<div id="dialog-password" title = "Retrieve Password">
+	
+</div>
+
+<div id="dialog-alert" title = "Alert">
+	<div id="alerts">
+	
+	</div>
+</div>
+
+<div class="ui-widget" id="connectionAlert" style="position: absolute; right: 10px; bottom: 10px; zIndex: 9999; width: 300px; display: none;">
+	<div class="ui-state-error ui-corner-all" style="padding: 0 .7em;">
+		<p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span>
+		<strong>Alert:</strong> Connection to server failure. Reconnecting...</p>
+	</div>
+</div>

@@ -1,0 +1,37 @@
+{
+    "name": "tkiee",
+    "private": true,
+    "version": "0.2.0",
+    "description": "TKIEE online presetation system",
+    "dependencies": {
+        "sails": "0.9.16",
+        "grunt": "0.4.5",
+        "sails-disk": "~0.9.3",
+        "ejs": "1.0.0",
+        "optimist": "0.6.1",
+        "mkdirp": "0.5.0",
+        "csv-parser": "1.2.2",
+        "pdf-extract": "1.0.7",
+        "kue": "0.8.2",
+        "pngquant": "0.1.5",
+        "platform": "1.2.0",
+        "aws-sdk": ">=2.0.9",
+		"nodemailer": "1.1.1",
+        "glossary": "0.1.1",
+        "pluralize": "1.0.0",
+
+        "oauth": ">= 0.9.12",
+        "evernote": "1.25.3",
+        "request": ">= 2.44.0",
+        "merge-descriptors": "0.0.2",
+        "stream-buffers": "~0.2.5"
+    },
+    "scripts": {
+        "start": "node app.js",
+        "debug": "node debug app.js"
+    },
+    "main": "app.js",
+    "repository": "",
+    "author": "TKIEE",
+    "license": ""
+}
